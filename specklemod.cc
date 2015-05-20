@@ -325,8 +325,7 @@ void speckle::init(int idseed){
     const double factor=1.0-1.0/stdev;
     for(int i=0;i<ngridvI;i++){
         double vaux=(nrescale?(double(i)+0.5)*dvI/stdev+factor:((double)i+0.5)*dvI);
-        //fprintf(f18,"%d %lf %lf\n",i,vaux,pvI[i]/dvI);
-        fprintf("%d %lf %lf\n",i,vaux,pvI[i]/dvI);
+        fprintf(f18,"%d %lf %lf\n",i,vaux,pvI[i]/dvI);
         }
 
     //Fill end points (periodicity) in all the axis.
