@@ -5,7 +5,9 @@
 #define memfile "/proc/meminfo"
 
 typedef struct datamem{
-    unsigned long int MemTotal, MemFree, Cached, Buffers, MemAvail, MemUsed;
+    unsigned long int MemTotal, MemFree, Cached, Buffers;
+    unsigned long int MemAvail(){return MemFree+Cached+Buffers;}
+    unsigned long int MemUsed(){return MemTotal-MemFree-Cached-Buffers;}
     } datamem;
 
 int getmem(datamem* in){
@@ -21,10 +23,12 @@ int getmem(datamem* in){
         else if (strncmp(index,"Cached:",7)==0) in->Cached=value;
         else if (strncmp(index,"Buffers:",8)==0) in->Buffers=value;
         }
-    in->MemAvail=in->MemFree+in->Cached+in->Buffers;
-    in->MemUsed=in->MemTotal-in->MemAvail;
     fclose(doc);
     return 0;
+    }
+
+int getcpu(){
+    
     }
 
 int main(int argc, char **argv){
@@ -38,8 +42,8 @@ int main(int argc, char **argv){
         printf("MemFree %lu\n",data.MemFree);
         printf("Cached %lu\n",data.Cached);
         printf("Buffers %lu\n",data.Buffers);
-        printf("MemAvail %lu\n",data.MemAvail);
-        printf("MemUsed %lu\n",data.MemUsed);
+        printf("MemAvail %lu\n",data.MemAvail());
+        printf("MemUsed %lu\n",data.MemUsed());
         }
 	return 0;
 }
