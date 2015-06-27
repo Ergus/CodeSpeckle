@@ -24,11 +24,11 @@ speckle::speckle(int onpmax, Speckletype ospeckletype):
         xpos=(double*) malloc(npxpu*sizeof(double));
         x=(double*) malloc(npmax*sizeof(double));
 
-        dx=size/npmax;
+        dx =size/double(npmax);
         dxi=double(npmax)/size;
         }
 
-void speckle::init(int idseed){
+int speckle::init(int idseed){
     //For to be used internally, not needed but for to make
     //the code looks like the Fortran One
     const int npx=npmax, npx2=npx*npx, npu=npxpu, npu2=npxpu*npxpu;
@@ -365,6 +365,7 @@ void speckle::init(int idseed){
     free(pvI);
     fclose(f18);
     printf("Speckle created\n");
+    return 0;
     }
 
 
@@ -372,4 +373,242 @@ speckle::~speckle(){
     if(x) free(x);
     if(xpos) free(xpos);    
     if(VP) free(VP);
+    }
+
+double speckle::EXVT(double xco,double yco,double zco){
+    double ya[nov*nov*nov];
+    int ix=(integer)(xco * dxi),
+        iy=(integer)(yco * dxi),
+        iz=(integer)(zco * dxi),
+        last=npxpu-nov,
+        half=(nov-1)/2,
+        nov2=nov*nov,
+        npxpu2=npxpu*npxpu,
+        kx=min(max(ix-half,0),last),
+        ky=min(max(iy-half,0),last),
+        kz=min(max(iz-half,0),last);
+    
+    for(int i=kz;i<kz+nov,i++){
+        for(int j=ky;j<ky+nov,j++){
+            for(int k=kx;k<kx+nov,k++){
+                ya( (i-kz)*nov2
+                   +(j-ky)*nov
+                   +(k-kx)) = VP( i*npxpu2
+                                 +j*npxpu
+                                 +k);
+                }
+            }
+        }
+
+    polin3(xpos[kx],xpos[ky],xpos[kz],
+           ya, nov, nov, nov,xco,yco,zco,y,dy);
+        
+    return y;
+    }
+
+void speckle::correlationspeckle(int idseed){
+    const int Npart=150000,
+              npartmax=200000,
+              sizedouble=sizeof(double),
+              sizeint=sizeof(int);
+    
+    double *atau3    =(double*) calloc(npmax,sizedouble),
+           *atau3xy  =(double*) calloc(npmax,sizedouble),
+           *atau3z   =(double*) calloc(npmax,sizedouble),
+           *atau3sq  =(double*) calloc(npmax,sizedouble),
+           *atau3xysq=(double*) calloc(npmax,sizedouble),
+           *atau3zsq =(double*) calloc(npmax,sizedouble);
+    
+    int *intau  =(int*) calloc(npmax,sizeint),
+        *intauxy=(int*) calloc(npmax,sizeint),
+        *intauz =(int*) calloc(npmax,sizeint),
+        *np     =(int*) calloc(3*npartmax,sizeint);
+    
+    double vme=1.0;
+    
+    const double size2=size*size, size2o4=0.25*size*size, stepcorfun = size/4000.;
+    const int npx=npmax, npxo2=npmax/2, npxpu2=npxpu*npxpu;
+    
+    int nx,usedsize;
+
+    printf("Computing Correlations\n");
+
+    FILE *f13=fopen("specklecorr3D.dat","a");
+    FILE *f19=fopen("specklecorfunanal3D.dat","a");
+
+    for(int i=0;i<Npart;i++){
+        np[i*3  ]=(int)(frand()*size/dx);  //Here I didn't add 1 cause of the C indices
+        np[i*3+1]=(int)(frand()*size/dx);
+        np[i*3+2]=(int)(frand()*size/dx);
+        }
+    
+    //i start in 1 because if i=j=0 nothing is made
+    for(int i=1;i<Npart;i++){
+        double rx,ry,rz,rr,rxy,add, add2;
+        int iabsiz, ir, iz;
+        for(int j=0;j<i;j++){
+            rx=dx*(np[i*3  ]-np[j*3  ]);
+            ry=dx*(np[i*3+1]-np[j*3+1]);
+            
+            iz=np[i*3+2]-np[j*3+2];   //is different because the int var is needed later
+            rz=dx*(iz);
+            add = (VP(np[j*3+2]*npxpu2 + np[j*3+1]*npxpu + np[j*3]) - vme )
+                 *(VP(np[i*3+2]*npxpu2 + np[i*3+1]*npxpu + np[i*3]) - vme );
+            add2=add*add;
+            
+            rr=rx*rx+ry*ry+rz*rz;
+            rxy=rx*rx+ry*ry;
+            iabsiz=abs(iz);
+
+            if(rr<size2o4){
+                ir=(int)(sqrt(rr)/dx);
+                atau3[ir] += add;
+                atau3sq[ir] += add2;
+                intau[ir] += + 1;
+                }
+            if(rxy<size2o4){
+                ir=(int)(sqrt(rxy)/dx);
+                atau3xy[ir] += add;
+                atau3xysq[ir] += add2;
+                intauxy[ir]++;
+                }
+            if(iabsiz<npxo2){
+                ir=iabsiz;
+                atau3z[ir]+=add;
+                atau3zsq[ir]+=add2;
+                intauz[ir]++;
+                }//end if
+            }//end for
+        }//end for
+
+    for(int i=0;i<=npxo2;i++){
+        double val  =0.0, verr  =0.0, valxy=0.0, verrxy=0.0,
+               valz =0.0, verrz =0.0, val2, vsq,
+               tmp  = ((double)iw+0.5)*dx;
+        if(intau[i] != 0){
+            val=(atau3[i]/=intau[i]);
+            val2=val*val;
+            vsq=atau3sq[i]/intau[i];
+            verr=(vsq-val2)/sqrt((double)(intau[i]));
+            }
+        if(intauxy[i] != 0){
+            valxy=(atau3xy[i]/=intauxy[i]);
+            val2=val*val;
+            vsq=atau3xysq[i]/intauxy[i];
+            verrxy=(vsq-val2)/sqrt((double)(intauxy[i]));
+            }
+        if(intauz[i] != 0){
+            valz=(atau3z[i]/=intauz[i]);
+            val2=val*val;
+            vsq=atau3zsq[i]/intauz[i];
+            verrz=(vsq-val2)/sqrt((double)(intauz[i]));
+            }
+        fprintf(f13,"%lf\t %lf\t %lf\t %lf\t %lf\t %lf\t %lf\n",
+                      tmp,val,verr,valxy,verrxy,valz,verrz);
+        }//end for
+
+    for(int i=1; i<=2000; i+=10){
+        double xcorfun= stepcorfun*i,
+               argc   = pi*xcorfun/(vDi*vlambda*focal),
+            
+               c2circ  = 2.0*bessj1(argc)/(argc),
+               fcorr3D= 3.0*(sin(argc)-argc*cos(argc))/(argc*argc*argc),
+               czed=sin(argz)/argz;
+        
+        fprintf(f19,"%lf\t %lf\t %lf\t %lf\n",
+                xcorfun, fcorr3D*fcorr3D, c2circ*c2circ, czed*czed );
+        
+        }//end for
+
+    fclose(f13);
+    fclose(f19);
+    
+    free(atau3);
+    free(atau3xy);
+    free(atau3z);
+    free(atau3sq);
+    free(atau3xysq);
+    free(atau3zsq);
+    
+    free(intau);
+    free(intauxy);
+    free(intauz);
+    free(np);
+    }
+
+void speckle::writespeckle(){
+    const int npu=npxpu, npu2=npxpu*npxpu;
+    
+    printf("Writing Speckle\n");
+    FILE *f14=fopen("speckle3D.dat","w");
+
+    for(int i=0;i<npu;i++)
+        for(int j=0;j<npu;j++)
+            for(int k=0;k<npu;k++)
+                fprintf(f14,"%lf\t %lf\t %lf\n",xpos[k],xpos[j],xpos[i],VP(i*npu2+j*npu+k));
+    fclose(f14);
+    printf("Speckle written\n");
+    }
+
+int speckle::ftspeckle(){
+    MKL_LONG status,
+              N[3]={npmax,npmax,npmax},
+        
+             rstrides[4]={ 0, N[1]*(N[2]/2+1)*2, (N[2]/2+1)*2, 1},
+             cstrides[4]={ 0, N[1]*(N[2]/2+1)  , (N[2]/2+1)  , 1};
+
+    double *x_real;    					//This 2 arrays will have dimension 3
+    double complex *x_cmplx;
+
+	DFTI_DESCRIPTOR_HANDLE hand;
+
+    double scaleforward=1.d0/(N[0]*N[1]*N[2]);    
+
+    printf("Create DFTI descriptor for real transform\n");
+    status = DftiCreateDescriptor(&hand,DFTI_DOUBLE,DFTI_REAL,3,N);
+    if(status!=0){
+        printf("Error call DftiCreateDescriptor, status = %li\n",status);
+        return status;
+        }
+
+    printf("Set out-of-place\n");
+    status = DftiSetValue(&hand, DFTI_PLACEMENT, DFTI_NOT_INPLACE);
+    if(status!=0){
+        printf("Error 'placement' call DftiSetValue, status = %li\n",status);
+        return status;
+        }
+
+    printf("Set CCE storage\n");
+    status = DftiSetValue(&hand, DFTI_CONJUGATE_EVEN_STORAGE, DFTI_COMPLEX_COMPLEX);
+    if(status!=0){
+        printf("Error 'event' call DftiSetValue, status = %li\n",status);
+        return status;
+        }
+
+    status = DftiSetValue(&hand, DFTI_FORWARD_SCALE, scaleforward);
+    if(status!=0){
+        printf("Error 'scale' call DftiSetValue, status = %li\n",status);
+        return status;
+        }
+
+    status = DftiSetValue(hand, DFTI_INPUT_STRIDES, rstrides)
+    if(status!=0){
+        printf("Error 'input stride' call DftiSetValue, status = %li\n",status);
+        return status;
+        }
+
+    status = DftiSetValue(hand, DFTI_OUTPUT_STRIDES, cstrides)
+    if(status!=0){
+        printf("Error 'input stride' call DftiSetValue, status = %li\n",status);
+        return status;
+        }
+
+    printf("Commit DFTI descriptor\n");
+    status = DftiCommitDescriptor(hand);
+    if (status!=0){
+        printf("Error call DftiCommitDescriptor, status = %li\n",status);
+        return status;
+        }
+     
+    return 0;
     }

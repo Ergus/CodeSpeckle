@@ -6,6 +6,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdlib.h>
+#include "mkl_dfti.h"
 
 #define frand()((double)rand()/(RAND_MAX))//random number generator
 
@@ -18,8 +19,7 @@ class speckle {
         ~speckle();        
     
         // variables to define the speckle
-        const int Nscatterers,
-            npmax;
+        const int Nscatterers, npmax;
         double size, vDi, focal, vlambda,
                vDi2, focal2, cofactor, rphase;
         const Speckletype speckletype;
@@ -45,17 +45,19 @@ class speckle {
         double *w;
 
         //Here starts the functions, all are public
-        void init(int idseed);
-        /*        double EXVT(double xco,double yco,double zco);
+        int init(int idseed);
+        double EXVT(double xco,double yco,double zco);
         void correlationspeckle(int idseed);
-        void readspeckle();
         void writespeckle();
+        int ftspeckle();
+        /*
+        void readspeckle();
         void averagecorrelation();
-        void ftspeckle();
         void diagonalize();
         void defineA();
         void DOSspeckle();
         */
     };
+
 
 #endif
