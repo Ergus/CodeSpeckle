@@ -19,7 +19,8 @@ speckle::speckle(int onpmax, Speckletype ospeckletype):
     npmax(onpmax),
     npxpu(onpmax+1),
     speckletype(ospeckletype),
-    nov(4){
+    nov(4),
+    Vk(NULL){
         VP=(double*) malloc(npxpu*npxpu*npxpu*sizeof(double));
         xpos=(double*) malloc(npxpu*sizeof(double));
         x=(double*) malloc(npmax*sizeof(double));
@@ -551,19 +552,36 @@ void speckle::writespeckle(){
     }
 
 int speckle::ftspeckle(){
+    //In all the cases N1==N2==N3 so the original Ni vars in the code were sustituted for npx
+    const int npx=npmax, npx2=npx*npx, npu=npxpu, npu2=npxpu*npxpu, padx=npx/2+1;
+    
     MKL_LONG status,
-              N[3]={npmax,npmax,npmax},
-        
-             rstrides[4]={ 0, N[1]*(N[2]/2+1)*2, (N[2]/2+1)*2, 1},
-             cstrides[4]={ 0, N[1]*(N[2]/2+1)  , (N[2]/2+1)  , 1};
+             N[3]={ npx, npx, npx},
+             rstrides[4]={ 0,     npx2,  npx, 1},
+             cstrides[4]={ 0, npx*padx, padx, 1};
 
-    double *x_real;    					//This 2 arrays will have dimension 3
-    double complex *x_cmplx;
+    //This 2 arrays will have dimension 3
+    printf("Allocate data arrays\n");             
+    double *x_real=(double*) malloc(npx*npx2*sizeof(double));
+    double complex *x_cmplx=(double complex*) malloc(padx*npx2*sizeof(double complex));
+    
+    if(Vk) free(Vk);
+    Vk=(double complex *) malloc(npx*npx2*sizeof(double complex));
 
-	DFTI_DESCRIPTOR_HANDLE hand;
+    //The next for loop copies the data in the array VP to xreal, but without the extra columns for the boundary conditions
+    printf("Initialize data for real-to-complex FFT\n");
+    for(int i=0;i<npx;i++){
+        for(int j=0;j<npx;j++){
+            for(int k=0;k<npx;k++){
+                xreal[i*npx2+j*npx+k]=VP[i*npu2+j*npu+k];
+                }
+            }
+        }
 
-    double scaleforward=1.d0/(N[0]*N[1]*N[2]);    
-
+	DFTI_DESCRIPTOR_HANDLE hand=0;
+    double scaleforward=1.0/(npx*npx2),
+           scalebackward=1.0;
+    
     printf("Create DFTI descriptor for real transform\n");
     status = DftiCreateDescriptor(&hand,DFTI_DOUBLE,DFTI_REAL,3,N);
     if(status!=0){
@@ -572,20 +590,20 @@ int speckle::ftspeckle(){
         }
 
     printf("Set out-of-place\n");
-    status = DftiSetValue(&hand, DFTI_PLACEMENT, DFTI_NOT_INPLACE);
+    status = DftiSetValue(hand, DFTI_PLACEMENT, DFTI_NOT_INPLACE);
     if(status!=0){
         printf("Error 'placement' call DftiSetValue, status = %li\n",status);
         return status;
         }
 
     printf("Set CCE storage\n");
-    status = DftiSetValue(&hand, DFTI_CONJUGATE_EVEN_STORAGE, DFTI_COMPLEX_COMPLEX);
+    status = DftiSetValue(hand, DFTI_CONJUGATE_EVEN_STORAGE, DFTI_COMPLEX_COMPLEX);
     if(status!=0){
         printf("Error 'event' call DftiSetValue, status = %li\n",status);
         return status;
         }
 
-    status = DftiSetValue(&hand, DFTI_FORWARD_SCALE, scaleforward);
+    status = DftiSetValue(hand, DFTI_FORWARD_SCALE, scaleforward);
     if(status!=0){
         printf("Error 'scale' call DftiSetValue, status = %li\n",status);
         return status;
@@ -609,6 +627,72 @@ int speckle::ftspeckle(){
         printf("Error call DftiCommitDescriptor, status = %li\n",status);
         return status;
         }
-     
+
+    printf("Compute forward transform\n");
+    status = DftiComputeForward(hand, x_real, x_cmplx);
+    if (status!=0){
+        printf("Error call DftiComputeForward, status = %li\n",status);
+        return status;
+        }
+                   
+    printf("Reconfigure DFTI descriptor for backward transform\n");
+
+    status = DftiSetValue(hand, DFTI_INPUT_STRIDES, cstrides)
+    if(status!=0){
+        printf("Error 'input stride' call DftiSetValue (back), status = %li\n",status);
+        return status;
+        }
+
+    status = DftiSetValue(hand, DFTI_OUTPUT_STRIDES, rstrides)
+    if(status!=0){
+        printf("Error 'input stride' call DftiSetValue (back), status = %li\n",status);
+        return status;
+        }
+    
+    status = DftiSetValue(hand, DFTI_BACKWARD_SCALE, scalebackward);
+    if(status!=0){
+        printf("Error 'scale' call DftiSetValue (back), status = %li\n",status);
+        return status;
+        }
+
+    status = DftiCommitDescriptor(hand)
+    if (status!=0){
+        printf("Error call DftiCommitDescriptor (back), status = %li\n",status);
+        return status;
+        }
+
+    status = DftiComputeBackward(hand, x_cmplx, x_real)
+    if (status!=0){
+        printf("Error call DftiComputeBackward, status = %li\n",status);
+        return status;
+        }
+
+
+    printf("Verify the result after a forward and backward Fourier Transforms\n");
+    int count=0;
+    for(int i=0;i<npx;i++){
+        for(int j=0;j<npx;j++){
+            for(int k=0;k<npx;k++){
+                count+=(fabs(xreal[i*npx2+j*npx+k]-VP[i*npu2+j*npu+k])>0.01);
+                }
+            }
+        }
+    
+    printf("Number of elements with an error greater than 0.01 %d\n",count);
+
+    //This is completly modified way to do this because no mod or extra if are needed
+    for(int i=0, ni=npx; i<npx; i++, ni--){
+        for(int j=0, nj=npx; j<npx; j++, nj--){
+            for(int k=0;k<padx;k++){ //same vales than the padded
+                Vk(i*npx2+j*npx+k)=Vintensity*x_cmplx(nx,ny,nz);
+                }
+            for(int k=padx, nk=npx-padx; k<npx; k++, nk--){
+                Vk(i*npx2+j*npx+k)=Vintensity*x_cmplx(ni*npx*padx+nj*padx+nk);
+                }
+            }
+        }
+    
+    free(x_real);
+    free(x_cmplx);
     return 0;
     }
