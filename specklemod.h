@@ -7,11 +7,13 @@
 #include <math.h>
 #include <stdlib.h>
 #include "mkl_dfti.h"
+#include <algorithm>
 
 #define frand()((double)rand()/(RAND_MAX))//random number generator
 
 enum Speckletype{spherical,sum2,single,shell};
 extern char Specklename[][10];   //This have to be defined in the source file
+using namespace std;
 
 class speckle {
     public:

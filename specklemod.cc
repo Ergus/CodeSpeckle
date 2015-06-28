@@ -1,4 +1,5 @@
 #include "specklemod.h"
+#include "speckleauxiliary.h"
 
 char Specklename[][10]={"spherical","sum2","single","shell"};
 
@@ -377,10 +378,10 @@ speckle::~speckle(){
     }
 
 double speckle::EXVT(double xco,double yco,double zco){
-    double ya[nov*nov*nov];
-    int ix=(integer)(xco * dxi),
-        iy=(integer)(yco * dxi),
-        iz=(integer)(zco * dxi),
+    double ya[nov*nov*nov], y, dy;
+    int ix=(int)(xco * dxi),
+        iy=(int)(yco * dxi),
+        iz=(int)(zco * dxi),
         last=npxpu-nov,
         half=(nov-1)/2,
         nov2=nov*nov,
@@ -389,19 +390,19 @@ double speckle::EXVT(double xco,double yco,double zco){
         ky=min(max(iy-half,0),last),
         kz=min(max(iz-half,0),last);
     
-    for(int i=kz;i<kz+nov,i++){
-        for(int j=ky;j<ky+nov,j++){
-            for(int k=kx;k<kx+nov,k++){
-                ya( (i-kz)*nov2
+    for(int i=kz; i<kz+nov; i++){
+        for(int j=ky; j<ky+nov; j++){
+            for(int k=kx; k<kx+nov; k++){
+                ya[ (i-kz)*nov2
                    +(j-ky)*nov
-                   +(k-kx)) = VP( i*npxpu2
+                   +(k-kx)] = VP[ i*npxpu2
                                  +j*npxpu
-                                 +k);
+                                 +k];
                 }
             }
         }
 
-    polin3(xpos[kx],xpos[ky],xpos[kz],
+    polin3(&xpos[kx],&xpos[ky],&xpos[kz],
            ya, nov, nov, nov,xco,yco,zco,y,dy);
         
     return y;
@@ -445,7 +446,7 @@ void speckle::correlationspeckle(int idseed){
     
     //i start in 1 because if i=j=0 nothing is made
     for(int i=1;i<Npart;i++){
-        double rx,ry,rz,rr,rxy,add, add2;
+        double rx,ry,rz,rr,rxy;
         int iabsiz, ir, iz;
         for(int j=0;j<i;j++){
             rx=dx*(np[i*3  ]-np[j*3  ]);
@@ -453,9 +454,10 @@ void speckle::correlationspeckle(int idseed){
             
             iz=np[i*3+2]-np[j*3+2];   //is different because the int var is needed later
             rz=dx*(iz);
-            add = (VP(np[j*3+2]*npxpu2 + np[j*3+1]*npxpu + np[j*3]) - vme )
-                 *(VP(np[i*3+2]*npxpu2 + np[i*3+1]*npxpu + np[i*3]) - vme );
-            add2=add*add;
+            
+            const double tmp=VP[np[j*3+2]*npxpu2 + np[j*3+1]*npxpu + np[j*3]] - vme,
+                add = tmp*tmp,
+                add2= add*add;
             
             rr=rx*rx+ry*ry+rz*rz;
             rxy=rx*rx+ry*ry;
@@ -484,8 +486,7 @@ void speckle::correlationspeckle(int idseed){
 
     for(int i=0;i<=npxo2;i++){
         double val  =0.0, verr  =0.0, valxy=0.0, verrxy=0.0,
-               valz =0.0, verrz =0.0, val2, vsq,
-               tmp  = ((double)iw+0.5)*dx;
+               valz =0.0, verrz =0.0, val2, vsq;
         if(intau[i] != 0){
             val=(atau3[i]/=intau[i]);
             val2=val*val;
@@ -505,17 +506,19 @@ void speckle::correlationspeckle(int idseed){
             verrz=(vsq-val2)/sqrt((double)(intauz[i]));
             }
         fprintf(f13,"%lf\t %lf\t %lf\t %lf\t %lf\t %lf\t %lf\n",
-                      tmp,val,verr,valxy,verrxy,valz,verrz);
+                      ((double)i+0.5)*dx,val,verr,valxy,verrxy,valz,verrz);
         }//end for
 
     for(int i=1; i<=2000; i+=10){
         double xcorfun= stepcorfun*i,
-               argc   = pi*xcorfun/(vDi*vlambda*focal),
-            
+               argc   = M_PI*xcorfun/(vDi*vlambda*focal),
                c2circ  = 2.0*bessj1(argc)/(argc),
                fcorr3D= 3.0*(sin(argc)-argc*cos(argc))/(argc*argc*argc),
+               ltmp=(vDi*focal),
+               argz = M_PI*xcorfun/(8.0*vlambda*ltmp*ltmp),
                czed=sin(argz)/argz;
-        
+        //all the previous vales are powered 2 in the original code
+        //this is made in print time
         fprintf(f19,"%lf\t %lf\t %lf\t %lf\n",
                 xcorfun, fcorr3D*fcorr3D, c2circ*c2circ, czed*czed );
         
@@ -546,7 +549,7 @@ void speckle::writespeckle(){
     for(int i=0;i<npu;i++)
         for(int j=0;j<npu;j++)
             for(int k=0;k<npu;k++)
-                fprintf(f14,"%lf\t %lf\t %lf\n",xpos[k],xpos[j],xpos[i],VP(i*npu2+j*npu+k));
+                fprintf(f14,"%lf\t %lf\t %lf\t %lf\n",xpos[k],xpos[j],xpos[i],VP[i*npu2+j*npu+k]);
     fclose(f14);
     printf("Speckle written\n");
     }
@@ -573,7 +576,7 @@ int speckle::ftspeckle(){
     for(int i=0;i<npx;i++){
         for(int j=0;j<npx;j++){
             for(int k=0;k<npx;k++){
-                xreal[i*npx2+j*npx+k]=VP[i*npu2+j*npu+k];
+                x_real[i*npx2+j*npx+k]=VP[i*npu2+j*npu+k];
                 }
             }
         }
@@ -609,13 +612,13 @@ int speckle::ftspeckle(){
         return status;
         }
 
-    status = DftiSetValue(hand, DFTI_INPUT_STRIDES, rstrides)
+    status = DftiSetValue(hand, DFTI_INPUT_STRIDES, rstrides);
     if(status!=0){
         printf("Error 'input stride' call DftiSetValue, status = %li\n",status);
         return status;
         }
 
-    status = DftiSetValue(hand, DFTI_OUTPUT_STRIDES, cstrides)
+    status = DftiSetValue(hand, DFTI_OUTPUT_STRIDES, cstrides);
     if(status!=0){
         printf("Error 'input stride' call DftiSetValue, status = %li\n",status);
         return status;
@@ -636,14 +639,13 @@ int speckle::ftspeckle(){
         }
                    
     printf("Reconfigure DFTI descriptor for backward transform\n");
-
-    status = DftiSetValue(hand, DFTI_INPUT_STRIDES, cstrides)
+    status = DftiSetValue(hand, DFTI_INPUT_STRIDES, cstrides);
     if(status!=0){
         printf("Error 'input stride' call DftiSetValue (back), status = %li\n",status);
         return status;
         }
 
-    status = DftiSetValue(hand, DFTI_OUTPUT_STRIDES, rstrides)
+    status = DftiSetValue(hand, DFTI_OUTPUT_STRIDES, rstrides);
     if(status!=0){
         printf("Error 'input stride' call DftiSetValue (back), status = %li\n",status);
         return status;
@@ -655,13 +657,13 @@ int speckle::ftspeckle(){
         return status;
         }
 
-    status = DftiCommitDescriptor(hand)
+    status = DftiCommitDescriptor(hand);
     if (status!=0){
         printf("Error call DftiCommitDescriptor (back), status = %li\n",status);
         return status;
         }
 
-    status = DftiComputeBackward(hand, x_cmplx, x_real)
+    status = DftiComputeBackward(hand, x_cmplx, x_real);
     if (status!=0){
         printf("Error call DftiComputeBackward, status = %li\n",status);
         return status;
@@ -673,26 +675,26 @@ int speckle::ftspeckle(){
     for(int i=0;i<npx;i++){
         for(int j=0;j<npx;j++){
             for(int k=0;k<npx;k++){
-                count+=(fabs(xreal[i*npx2+j*npx+k]-VP[i*npu2+j*npu+k])>0.01);
+                count+=(fabs(x_real[i*npx2+j*npx+k]-VP[i*npu2+j*npu+k])>0.01);
                 }
             }
         }
     
     printf("Number of elements with an error greater than 0.01 %d\n",count);
-
     //This is completly modified way to do this because no mod or extra if are needed
     for(int i=0, ni=npx; i<npx; i++, ni--){
         for(int j=0, nj=npx; j<npx; j++, nj--){
             for(int k=0;k<padx;k++){ //same vales than the padded
-                Vk(i*npx2+j*npx+k)=Vintensity*x_cmplx(nx,ny,nz);
+                Vk[i*npx2+j*npx+k]=Vintensity*x_cmplx[i*npx2+j*npx+k];
                 }
             for(int k=padx, nk=npx-padx; k<npx; k++, nk--){
-                Vk(i*npx2+j*npx+k)=Vintensity*x_cmplx(ni*npx*padx+nj*padx+nk);
+                Vk[i*npx2+j*npx+k]=Vintensity*conj(x_cmplx[ni*npx*padx+nj*padx+nk]);
                 }
             }
         }
     
     free(x_real);
     free(x_cmplx);
+    printf("ftspeckle ended ok\n");
     return 0;
     }

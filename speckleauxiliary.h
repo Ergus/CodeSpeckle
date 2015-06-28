@@ -14,6 +14,6 @@ void polin3(double *x1a,double *x2a,double *x3a,double *ya,
             double x1,double x2,double x3,
             double &y, double &dy);
 
-float bessj1(float x);
+double bessj1(double x);
 
 #endif

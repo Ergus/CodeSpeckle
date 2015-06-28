@@ -7,7 +7,7 @@ int main(){
     printf("Creating Single\n");
     speckle a(100,sum2);
     a.init(100);
-    a.fftspeckle();
+    a.ftspeckle();
     
     
     return 0;
