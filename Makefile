@@ -18,3 +18,8 @@ all: $(files)
 .PHONY: clean
 clean:
 	rm -rf *.o *.x
+
+.PHONY: test
+test: $(files)
+	./$(files)
+
