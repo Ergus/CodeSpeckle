@@ -21,7 +21,8 @@ speckle::speckle(int onpmax, Speckletype ospeckletype):
     npxpu(onpmax+1),
     speckletype(ospeckletype),
     nov(4),
-    Vk(NULL){
+    Vk(NULL),
+    A(NULL){
         VP=(double*) malloc(npxpu*npxpu*npxpu*sizeof(double));
         xpos=(double*) malloc(npxpu*sizeof(double));
         x=(double*) malloc(npmax*sizeof(double));
@@ -703,12 +704,14 @@ int speckle::ftspeckle(){
 void speckle::defineA(){
     double deltaT=(2.0*M_PI/size);
     const int Ntot=npmax*npmax*npmax, npx=npmax, npx2=npmax*npmax;    
-    
-    int* vkx=(int*)malloc(Ntot*sizeof(double)),
-         vky=(int*)malloc(Ntot*sizeof(double)),
-         vkz=(int*)malloc(Ntot*sizeof(double));
 
-    double* diagTk=(double*)malloc(Ntot*sizeof(double));
+    printf("The dimension of the matrix is %d\n", Ntot);
+    
+    int* vkx=(int*) malloc(Ntot*sizeof(double)),
+       * vky=(int*) malloc(Ntot*sizeof(double)),
+       * vkz=(int*) malloc(Ntot*sizeof(double));
+
+    double* diagTk=(double*) malloc(Ntot*sizeof(double));
     
     if(A) free(A);
     A=(double complex *) calloc(Ntot*Ntot,sizeof(double complex));
@@ -720,19 +723,19 @@ void speckle::defineA(){
     for(int nkx=0,kx=-npmax/2,ntk=0 ;nkx<npmax; nkx++,kx++){         //ntk is declared here
         for(int nky=0,ky=-npmax/2 ;nky<npmax; nky++,ky++){
             for(int nkz=0,kz=-npmax/2; nkz<npmax; nkz++,kz++,ntk++){ //but only incremented here
-                diagTk(ntk)=kx*kx+ky*ky+kz*kz;
-                vkx(ntk)=kx;
-                vky(ntk)=ky;
-                vkz(ntk)=kz;
+                diagTk[ntk]=kx*kx+ky*ky+kz*kz;
+                vkx[ntk]=kx;
+                vky[ntk]=ky;
+                vkz[ntk]=kz;
                 }
             }
         }
 
-    printf('Upper definition of A\n');
     //This loop is transverse to the cache access, but this is the way
     //it is made in the original code.
     //This can be made much more efficiently in the previous loop, but
-    //maybe this way is usefull or readable. 
+    //maybe this way is usefull or readable.
+    printf("Definition of A\n");    
     for(int i=0;i<Ntot;i++){
         for(int j=i+i;j<Ntot;j++){
             int kdiffx=(vkx[j]-vkx[i]+npmax)%npmax;
@@ -749,4 +752,5 @@ void speckle::defineA(){
     free(vkx);
     free(vky);
     free(vkz);
+    printf("Matrix A Defined correctly\n");
     }
