@@ -52,11 +52,11 @@ class speckle {
         void correlationspeckle(int idseed);
         void writespeckle();
         int ftspeckle();
+        void defineA();
         /*
         void readspeckle();
         void averagecorrelation();
         void diagonalize();
-        void defineA();
         void DOSspeckle();
         */
     };

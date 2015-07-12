@@ -8,7 +8,7 @@ int main(){
     speckle a(100,sum2);
     a.init(100);
     a.ftspeckle();
-    
+    a.defineA();
     
     return 0;
     }

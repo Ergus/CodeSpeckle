@@ -375,6 +375,7 @@ speckle::~speckle(){
     if(x) free(x);
     if(xpos) free(xpos);    
     if(VP) free(VP);
+    if(A) free(A);
     }
 
 double speckle::EXVT(double xco,double yco,double zco){
@@ -697,4 +698,55 @@ int speckle::ftspeckle(){
     free(x_cmplx);
     printf("ftspeckle ended ok\n");
     return 0;
+    }
+
+void speckle::defineA(){
+    double deltaT=(2.0*M_PI/size);
+    const int Ntot=npmax*npmax*npmax, npx=npmax, npx2=npmax*npmax;    
+    
+    int* vkx=(int*)malloc(Ntot*sizeof(double)),
+         vky=(int*)malloc(Ntot*sizeof(double)),
+         vkz=(int*)malloc(Ntot*sizeof(double));
+
+    double* diagTk=(double*)malloc(Ntot*sizeof(double));
+    
+    if(A) free(A);
+    A=(double complex *) calloc(Ntot*Ntot,sizeof(double complex));
+    
+    printf("The dimension of the matrix is %d\n", Ntot);
+
+    //----------Here we define the matrix A-----------------
+    //vectors of the k-components and of the kinetic energy (in units of deltaT=hbar^2*unitk^2/2m)    
+    for(int nkx=0,kx=-npmax/2,ntk=0 ;nkx<npmax; nkx++,kx++){         //ntk is declared here
+        for(int nky=0,ky=-npmax/2 ;nky<npmax; nky++,ky++){
+            for(int nkz=0,kz=-npmax/2; nkz<npmax; nkz++,kz++,ntk++){ //but only incremented here
+                diagTk(ntk)=kx*kx+ky*ky+kz*kz;
+                vkx(ntk)=kx;
+                vky(ntk)=ky;
+                vkz(ntk)=kz;
+                }
+            }
+        }
+
+    printf('Upper definition of A\n');
+    //This loop is transverse to the cache access, but this is the way
+    //it is made in the original code.
+    //This can be made much more efficiently in the previous loop, but
+    //maybe this way is usefull or readable. 
+    for(int i=0;i<Ntot;i++){
+        for(int j=i+i;j<Ntot;j++){
+            int kdiffx=(vkx[j]-vkx[i]+npmax)%npmax;
+            int kdiffy=(vky[j]-vky[i]+npmax)%npmax;
+            int kdiffz=(vkz[j]-vkz[i]+npmax)%npmax;
+            double complex t=Vk[kdiffz*npx2+kdiffy*npx+kdiffx];
+            A[j*Ntot+i]=t;
+            A[i*Ntot+j]=conj(t);
+            }
+        A[i*Ntot+i]=Vk[0]+(deltaT*diagTk[i]);
+        }
+    
+    free(diagTk);
+    free(vkx);
+    free(vky);
+    free(vkz);
     }
