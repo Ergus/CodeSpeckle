@@ -6,7 +6,7 @@ int main(){
     
     printf("Creating Single\n");
     speckle a(10,sum2);
-    a.init_single(100);
+    a.init_shell(100);
     a.ftspeckle();
     a.defineA();
     

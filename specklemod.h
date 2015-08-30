@@ -50,9 +50,8 @@ class speckle {
         int init_spherical(int idseed);
         int init_sum2(int idseed);
         int init_single(int idseed);
-        //        int init_shell(int idseed);
+        int init_shell(int idseed);
         
-        int init(int idseed);
         double EXVT(double xco,double yco,double zco);
         void correlationspeckle(int idseed);
         void writespeckle();
