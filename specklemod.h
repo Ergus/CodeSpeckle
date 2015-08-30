@@ -48,7 +48,7 @@ class speckle {
 
         //Here starts the functions, all are public
         int init_spherical(int idseed);
-        //        int init_sum2(int idseed);
+        int init_sum2(int idseed);
         //        int init_single(int idseed);
         //        int init_shell(int idseed);
         
