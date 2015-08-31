@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include "mkl_dfti.h"
 #include <algorithm>
+#include <string.h>
 
 #define frand()((double)rand()/(RAND_MAX))//random number generator
 
@@ -37,6 +38,12 @@ class speckle {
         //Variables for derivative
         double *VPDX, *VPDY, *VPDZ;    //This will have dimmension 3
         double xco, yco, zco;
+        
+        //private inits for individual cases
+        int init_spherical(int idseed);
+        int init_sum2(int idseed);
+        int init_single(int idseed);
+        int init_shell(int idseed);
 
     public:
         //Variables for fftspeckle
@@ -45,12 +52,9 @@ class speckle {
         int cores, gpus;
         double complex *A;             //This will have dimension 2
         double *w;
-
-        //Here starts the functions, all are public
-        int init_spherical(int idseed);
-        int init_sum2(int idseed);
-        int init_single(int idseed);
-        int init_shell(int idseed);
+        
+        //Here starts the functions, all them are public
+        int init(int idseed);
         
         double EXVT(double xco,double yco,double zco);
         void correlationspeckle(int idseed);
