@@ -12,6 +12,15 @@
 
 #define frand()((double)rand()/(RAND_MAX))//random number generator
 
+#define dbg(x) { \
+        if(x!=0){                             \
+            printf("%s returned %d, %s:%d\n", \
+                   #x, x, __FILE__,__LINE__); \
+            exit(EXIT_FAILURE);               \
+        } \
+    }
+
+
 enum Speckletype{spherical,sum2,single,shell};
 extern char Specklename[][10];   //This have to be defined in the source file
 using namespace std;
