@@ -1,12 +1,10 @@
 #include "specklemod.h"
 #include "speckleauxiliary.h"
 
-char Specklename[][10]={"spherical","sum2","single","shell"};
-
-speckle::speckle(int onpmax, Speckletype ospeckletype):
-    // variables to define the speckle 
+speckle::speckle(int argc, char** argv):
+    //Secound constructor using standard input.
     Nscatterers(100),
-    nrescale(false),    	//shift and rescale sum2 speckle
+    nrescale(false),    	  //shift and rescale sum2 speckle
     size(0.11),
     vDi(0.05635245901639344262),
     focal(40.0),
@@ -15,20 +13,46 @@ speckle::speckle(int onpmax, Speckletype ospeckletype):
     focal2(30.0),
     cofactor(1.0),
     rphase(0.0),
-    VP(NULL),
-    xpos(NULL),
-    npmax(onpmax),
-    npxpu(onpmax+1),
-    speckletype(ospeckletype),
+    npmax(0),                 //This values are checked for errors
     nov(4),
     Vk(NULL),
-    A(NULL){
+    A(NULL),
+    largc(argc),
+    largv(argv){
+    
+    struct option localopts[] = {
+        {"Nscatterers", required_argument, 0, 'N'},
+        {"size", required_argument, 0, 's'},
+        {"vDi", required_argument, 0, 'v'},
+        {"vDi2", required_argument, 0, 'V'},
+        {"focal", required_argument, 0, 'f'},
+        {"focal2", required_argument, 0, 'F'},
+        {"vlambda", required_argument, 0, 'l'},
+        {"cofactor", required_argument, 0, 'c'},
+        {"rphase", required_argument, 0, 'p'},
+        {"npmax", required_argument, 0, 'm'},
+        {"speckletype", required_argument, 0, 't'},
+        {"nov", required_argument, 0, 'n'},
+                
+        {"rescale", no_argument, 0, 'r'},
+        {"help", no_argument, 0, 'h'},
+                
+        {0, 0, 0, 0}
+        };
+
+    longopts=localopts;
+    parser();
+    npxpu=npmax+1;    
+    
     VP=(double*) malloc(npxpu*npxpu*npxpu*sizeof(double));
+    dbg_mem(VP);
     xpos=(double*) malloc(npxpu*sizeof(double));
-    x=(double*) malloc(npmax*sizeof(double));
+    dbg_mem(xpos);
 
     dx =size/double(npmax);
     dxi=double(npmax)/size;
+
+    print();
     }
 
 int speckle::init(int idseed){
@@ -48,12 +72,11 @@ int speckle::init(int idseed){
         default:
             fprintf(stderr,"Error: calling %s in %s:%d\n",
                     __PRETTY_FUNCTION__, __FILE__,__LINE__);
+            
         }
     }
 
-
 speckle::~speckle(){
-    if(x) free(x);
     if(xpos) free(xpos);    
     if(VP) free(VP);
     if(A) free(A);
@@ -222,20 +245,6 @@ void speckle::correlationspeckle(int idseed){
     free(np);
     }
 
-void speckle::writespeckle(){
-    const int npu=npxpu, npu2=npxpu*npxpu;
-    
-    printf("Writing Speckle\n");
-    FILE *f14=fopen("speckle3D.dat","w");
-
-    for(int i=0;i<npu;i++)
-        for(int j=0;j<npu;j++)
-            for(int k=0;k<npu;k++)
-                fprintf(f14,"%lf\t %lf\t %lf\t %lf\n",xpos[k],xpos[j],xpos[i],VP[i*npu2+j*npu+k]);
-    fclose(f14);
-    printf("Speckle written\n");
-    }
-
 int speckle::ftspeckle(){
     //In all the cases N1==N2==N3 so the original Ni vars in the code were sustituted for npx
     const int npx=npmax, npx2=npx*npx, npu=npxpu, npu2=npxpu*npxpu, padx=npx/2+1;
@@ -247,11 +256,12 @@ int speckle::ftspeckle(){
 
     //This 2 arrays will have dimension 3
     printf("Allocate data arrays\n");             
-    double *x_real=(double*) malloc(npx*npx2*sizeof(double));
+    double *x_real=(double*) malloc(npx*npx2*sizeof(double)); dbg_mem(x_real);
     double complex *x_cmplx=(double complex*) malloc(padx*npx2*sizeof(double complex));
+    dbg_mem(x_cmplx);
     
     if(Vk) free(Vk);
-    Vk=(double complex *) malloc(npx*npx2*sizeof(double complex));
+    Vk=(double complex *) malloc(npx*npx2*sizeof(double complex)); dbg_mem(Vk);
 
     //The next for loop copies the data in the array VP to xreal, but without the extra columns for the boundary conditions
     printf("Initialize data for real-to-complex FFT\n");
@@ -310,7 +320,7 @@ int speckle::ftspeckle(){
         }
 
     if(count>0){
-        printf(" WARNING!!!======\n")
+        printf(" WARNING!!!======\n");
         printf(" Elements with an error > 0.01: %d\n",count);
         }
     
@@ -345,7 +355,7 @@ void speckle::defineA(){
     double* diagTk=(double*) malloc(Ntot*sizeof(double));
     
     if(A) free(A);
-    A=(double complex *) calloc(Ntot*Ntot,sizeof(double complex));
+    A=(double complex *) calloc(Ntot*Ntot,sizeof(double complex)); dbg_mem(A);
     
     printf("The dimension of the matrix is %d\n", Ntot);
 
@@ -353,7 +363,7 @@ void speckle::defineA(){
     //vectors of the k-components and of the kinetic energy (in units of deltaT=hbar^2*unitk^2/2m)    
     for(int nkx=0,kx=-npmax/2,ntk=0 ;nkx<npmax; nkx++,kx++){         //ntk is declared here
         for(int nky=0,ky=-npmax/2 ;nky<npmax; nky++,ky++){
-            for(int nkz=0,kz=-npmax/2; nkz<npmax; nkz++,kz++,ntk++){ //but only incremented here
+            for(int nkz=0,kz=-npmax/2; nkz<npmax; nkz++,kz++,ntk++){ //but incremented here
                 diagTk[ntk]=kx*kx+ky*ky+kz*kz;
                 vkx[ntk]=kx;
                 vky[ntk]=ky;
@@ -362,7 +372,7 @@ void speckle::defineA(){
             }
         }
 
-    //This loop is transverse to the cache access, but this is the way
+    //This loop is transversed access, but this is the way
     //it is made in the original code.
     //This can be made much more efficiently in the previous loop, but
     //maybe this way is usefull or readable.
@@ -383,5 +393,6 @@ void speckle::defineA(){
     free(vkx);
     free(vky);
     free(vkz);
+    free(Vk); //Vk is not used anymore and we need memory to diagonalization
     printf("Matrix A Defined correctly\n");
     }

@@ -4,7 +4,7 @@ CXXFLAGS = -O2
 MKLFLAGS=-I/u/shared/programs/x86_64/mkl/11.1.3/composer_xe_2013_sp1.3.174/mkl/include -mkl=parallel -lpthread
 
 FILE = main.x
-LIBS = speckleauxiliary.o specklemod.o inits.o
+LIBS = speckleauxiliary.o specklemod.o inits.o parses.o
 
 all: $(FILE)
 

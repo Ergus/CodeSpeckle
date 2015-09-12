@@ -1,7 +1,7 @@
 #include "specklemod.h"
 
 int speckle::init_spherical(int idseed){
-    const int npx=npmax, npx2=npx*npx, npu=npxpu,
+    const int npx=npmax, npx2=npmax*npmax, npu=npxpu,
         npu2=npxpu*npxpu, ngridvI =1000;
     
     double vmaxradscat =1.0/(2*vDi ),
@@ -32,17 +32,14 @@ int speckle::init_spherical(int idseed){
         *pvI=(double*) calloc(ngridvI,sizeof(double));
     
     //This will have dimension 3
-    double complex *ff3=(double complex*) calloc(npmax*npmax*npmax,sizeof(double complex));
+    double complex *ff3=(double complex*) calloc(npx2*npx,sizeof(double complex)); dbg_mem(ff3); dbg_mem(ff3);
 
     printf("Creating Speckle\n");
-    FILE *f18=fopen("specklepi3D.dat","a");
+    FILE *f18=fopen("specklepi3D.dat","a"); dbg_mem(f18);
     srand(idseed); //Seed for random number generator
 
-    for(int i=0;i<npx;i++){
-        double tmp=i*dx;
-        x[i]=tmp;
-        xpos[i]=tmp;
-        }
+    for(int i=0;i<npx;i++) xpos[i]=i*dx;
+    
     xpos[npx]=size;
     printf("N grid = %d\n",npx);
 
@@ -153,10 +150,8 @@ int speckle::init_spherical(int idseed){
 int speckle::init_sum2(int idseed){
     //For to be used internally, not needed but for to make
     //the code looks like the Fortran One
-    const int npx=npmax, npx2=npx*npx, npu=npxpu, npu2=npxpu*npxpu;
-    
-    const int ngridvI =1000;
-    double *pvI=(double*) calloc(ngridvI,sizeof(double));
+    const int npx=npmax, npx2=npmax*npmax, npu=npxpu, npu2=npxpu*npxpu,
+        ngridvI =1000;
 
     double vmaxradscat =1.0/(2*vDi ),
         vmaxradscat2=1.0/(2*vDi2),
@@ -190,21 +185,21 @@ int speckle::init_sum2(int idseed){
         *xscat2=(double*) malloc(Nscatterers*sizeof(double)),
         *zscat2=(double*) malloc(Nscatterers*sizeof(double)),
         *alphascat2=(double*) malloc(Nscatterers*sizeof(double)),
-        *betascat2=(double*) malloc(Nscatterers*sizeof(double));
+        *betascat2=(double*) malloc(Nscatterers*sizeof(double)),
+        *pvI=(double*) calloc(ngridvI,sizeof(double));
 
     //This will have dimension 3
-    double complex *ff3=(double complex*) calloc(npmax*npmax*npmax,sizeof(double complex)),
-        *ff3_2=(double complex*) calloc(npmax*npmax*npmax,sizeof(double complex));        
+    double complex *ff3=(double complex*) calloc(npx2*npx,sizeof(double complex)),
+        *ff3_2=(double complex*) calloc(npx2*npx,sizeof(double complex));
+    dbg_mem(ff3); dbg_mem(ff3_2); //If the error is in this line number,
+                                  //see the 2 lines before
 
     printf("Creating Speckle\n");
-    FILE *f18=fopen("specklepi3D.dat","a");
+    FILE *f18=fopen("specklepi3D.dat","a"); dbg_mem(f18);
     srand(idseed); //Seed for random number generator
 
-    for(int i=0;i<npx;i++){
-        double tmp=i*dx;
-        x[i]=tmp;
-        xpos[i]=tmp;
-        }
+    for(int i=0;i<npx;i++)  xpos[i]=i*dx;
+
     xpos[npx]=size;
     printf("N grid = %d\n",npx);
 
@@ -296,9 +291,9 @@ int speckle::init_sum2(int idseed){
                 stdev+=(vaux*vaux);
                 ivI=(int)(vaux/dvI);
                 if((ivI<ngridvI)&&(ivI>=0)) pvI[ivI]+=adpp;
-                }
-            }
-        }
+                }//for nx1
+            }//for nx2
+        }//for nx3
     
     stdev=sqrt(stdev*adpp-1.0);
     const double factor=1.0-1.0/stdev;
@@ -392,17 +387,14 @@ int speckle::init_single(int idseed){
         *pvI=(double*) calloc(ngridvI,sizeof(double));
 
     //This will have dimension 3
-    double complex *ff3=(double complex*) calloc(npmax*npmax*npmax,sizeof(double complex));
+    double complex *ff3=(double complex*) calloc(npx2*npx,sizeof(double complex)); dbg_mem(ff3);
 
     printf("Creating Speckle\n");
-    FILE *f18=fopen("specklepi3D.dat","a");
+    FILE *f18=fopen("specklepi3D.dat","a"); dbg_mem(f18);
     srand(idseed); //Seed for random number generator
 
-    for(int i=0;i<npx;i++){
-        double tmp=i*dx;
-        x[i]=tmp;
-        xpos[i]=tmp;
-        }
+    for(int i=0;i<npx;i++) xpos[i]=i*dx;
+
     xpos[npx]=size;
     printf("N grid = %d\n",npx);
 
@@ -554,17 +546,14 @@ int speckle::init_shell(int idseed){
         *zscat=(double*) malloc(Nscatterers*sizeof(double));
     
     //This will have dimension 3
-    double complex *ff3=(double complex*) calloc(npmax*npmax*npmax,sizeof(double complex));
+    double complex *ff3=(double complex*) calloc(npx2*npx,sizeof(double complex));
 
     printf("Creating Speckle\n");
-    FILE *f18=fopen("specklepi3D.dat","a");
+    FILE *f18=fopen("specklepi3D.dat","a"); dbg_mem(f18);
     srand(idseed); //Seed for random number generator
 
-    for(int i=0;i<npx;i++){
-        double tmp=i*dx;
-        x[i]=tmp;
-        xpos[i]=tmp;
-        }
+    for(int i=0;i<npx;i++) xpos[i]=i*dx;
+    
     xpos[npx]=size;
     printf("N grid = %d\n",npx);
 
