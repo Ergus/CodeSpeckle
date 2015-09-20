@@ -15,14 +15,14 @@ int speckle::init_spherical(int idseed){
         adpp=1.0/(npx2*npx),
         xcord[3];
 
-    double complex ffaux;             //this is used as a temporal variable, but in different loops    
-    
-    if(strcmp(Specklename[speckletype],"spherical")!=0){
+    double complex ffaux; //this is used as a temporal variable, but in different loops
+
+    if(speckletype!="spherical"){
         fprintf(stderr,"Error: call %s but Specklename: %s\n",
-                __PRETTY_FUNCTION__, Specklename[speckletype]);
-        return 1;
+                __PRETTY_FUNCTION__, speckletype.c_str());
+        printme();
+        return -1;
         }
-    printf("Speckletype spherical\n");
     
     double *xscat=(double*) malloc(Nscatterers*sizeof(double)),
         *yscat=(double*) malloc(Nscatterers*sizeof(double)),
@@ -32,16 +32,14 @@ int speckle::init_spherical(int idseed){
         *pvI=(double*) calloc(ngridvI,sizeof(double));
     
     //This will have dimension 3
-    double complex *ff3=(double complex*) calloc(npx2*npx,sizeof(double complex)); dbg_mem(ff3); dbg_mem(ff3);
+    double complex *ff3=(double complex*) calloc(npx2*npx,sizeof(double complex));
+    dbg_mem(ff3);
 
-    printf("Creating Speckle\n");
-    FILE *f18=fopen("specklepi3D.dat","a"); dbg_mem(f18);
     srand(idseed); //Seed for random number generator
 
     for(int i=0;i<npx;i++) xpos[i]=i*dx;
     
     xpos[npx]=size;
-    printf("N grid = %d\n",npx);
 
     //sample moduli and phases of scattered waves
     for(int i=0;i<Nscatterers;i++){
@@ -108,7 +106,7 @@ int speckle::init_spherical(int idseed){
         }
 
     stdev=sqrt(stdev*adpp-1.0);
-    printf("speckle st. dev.=%lf\n",stdev);
+    fprintf(f18,"# speckle st. dev.=%lf\n",stdev);
     
     const double factor=1.0-1.0/stdev;
     for(int i=0;i<ngridvI;i++){
@@ -142,8 +140,7 @@ int speckle::init_spherical(int idseed){
     
     free(ff3);
     free(pvI);
-    fclose(f18);
-    printf("Speckle created\n");
+    fprintf(f18,"# Speckle created\n");
     return 0;
     }
 
@@ -171,12 +168,12 @@ int speckle::init_sum2(int idseed){
     //this is used as a temp, but in different loops
     double complex ffaux;
 
-    if(strcmp(Specklename[speckletype],"sum2")!=0){
+    if(speckletype!="sum2"){
         fprintf(stderr,"Error: call %s but Specklename: %s\n",
-                __PRETTY_FUNCTION__, Specklename[speckletype]);
-        return 1;
+                __PRETTY_FUNCTION__, speckletype.c_str());
+        printme();
+        return -1;
         }
-    printf("Speckletype sum2\n");    
     
     double *xscat=(double*) malloc(Nscatterers*sizeof(double)),
         *yscat=(double*) malloc(Nscatterers*sizeof(double)),
@@ -192,16 +189,13 @@ int speckle::init_sum2(int idseed){
     double complex *ff3=(double complex*) calloc(npx2*npx,sizeof(double complex)),
         *ff3_2=(double complex*) calloc(npx2*npx,sizeof(double complex));
     dbg_mem(ff3); dbg_mem(ff3_2); //If the error is in this line number,
-                                  //see the 2 lines before
+                                  //check the 2 previous lines
 
-    printf("Creating Speckle\n");
-    FILE *f18=fopen("specklepi3D.dat","a"); dbg_mem(f18);
     srand(idseed); //Seed for random number generator
 
     for(int i=0;i<npx;i++)  xpos[i]=i*dx;
 
     xpos[npx]=size;
-    printf("N grid = %d\n",npx);
 
     //sample moduli and phases of scattered waves
     for(int i=0;i<Nscatterers;i++){
@@ -248,12 +242,12 @@ int speckle::init_sum2(int idseed){
                     double xscata2=xscat2[i];
                     double zscata2=zscat2[i];        //yscata2 sustitutes zscata from fortran
                     double arg1=M_PI*(2.0*(xcord[0]*xscata+xcord[1]*yscata)  //arg in Fortran
-                               -(xscata*xscata+yscata*yscata)                //arg2 in Fortran
-                               )*invlambdafoc;
+                                      -(xscata*xscata+yscata*yscata)                //arg2 in Fortran
+                                      )*invlambdafoc;
                         
                     double arg2=M_PI*(2.0*(xcord[0]*xscata2+xcord[1]*zscata2)   
-                               -(xscata2*xscata2+zscata2*zscata2)      
-                               )*invlambdafoc2;
+                                      -(xscata2*xscata2+zscata2*zscata2)      
+                                      )*invlambdafoc2;
 
                     ff3[idx]+=(alphascat[i]
                                *cexp(betascat[i]*I)
@@ -298,17 +292,13 @@ int speckle::init_sum2(int idseed){
     stdev=sqrt(stdev*adpp-1.0);
     const double factor=1.0-1.0/stdev;
     
-    printf("speckle st. dev.=%lf\n",stdev);
+    fprintf(f18, "# speckle st. dev.=%lf\n",stdev);
     
     if(nrescale){
-        printf("Shifting and rescaling field to have mean=1 and st.dev. = 1\n");
         //This moves also the unasigned values, but don't really matter
         for(int i=0; i<npu2*npu; i++){ 
             VP[i]=VP[i]/stdev+factor;
             }       
-        }
-    else{
-        printf("NOT Shifting and rescaling field\n");
         }
     
     for(int i=0;i<ngridvI;i++){
@@ -346,12 +336,9 @@ int speckle::init_sum2(int idseed){
 
     free(ff3);
     free(pvI);
-    fclose(f18);
-    printf("Speckle created\n");
+    fprintf(f18,"# Speckle created\n");
     return 0;
     }
-
-
 
 int speckle::init_single(int idseed){
     //For to be used internally, not needed but for to make
@@ -373,12 +360,12 @@ int speckle::init_single(int idseed){
 
     double complex ffaux;             //this is used as a temp, but in different loops    
     
-    if(strcmp(Specklename[speckletype],"single")!=0){
+    if(speckletype!="single"){
         fprintf(stderr,"Error: call %s but Specklename: %s\n",
-                __PRETTY_FUNCTION__, Specklename[speckletype]);
+                __PRETTY_FUNCTION__, speckletype.c_str());
+        printme();
         return 1;
         }
-    printf("Speckletype single\n");
     
     double *xscat=(double*) malloc(Nscatterers*sizeof(double)),
         *yscat=(double*) malloc(Nscatterers*sizeof(double)),
@@ -389,21 +376,18 @@ int speckle::init_single(int idseed){
     //This will have dimension 3
     double complex *ff3=(double complex*) calloc(npx2*npx,sizeof(double complex)); dbg_mem(ff3);
 
-    printf("Creating Speckle\n");
-    FILE *f18=fopen("specklepi3D.dat","a"); dbg_mem(f18);
     srand(idseed); //Seed for random number generator
 
     for(int i=0;i<npx;i++) xpos[i]=i*dx;
 
     xpos[npx]=size;
-    printf("N grid = %d\n",npx);
 
     //sample moduli and phases of scattered waves
     for(int i=0;i<Nscatterers;i++){
         alphascat[i] = 2.0*frand();
         betascat[i] = 2.0*M_PI*frand()-M_PI;
         }
-
+    
     //sample positions of random scatterers
     double tmp1, tmp2;
     for(int i=0;i<Nscatterers;i++){
@@ -424,7 +408,7 @@ int speckle::init_single(int idseed){
         double invlambdafoc2=1.0/(vlambda*temp);
         for(int nx2=0, y1=0, y2=0; nx2<npx; nx2++, y1+=npx, y2+=npu){
             
-            xcord[1]=(speckletype==sum2?focal+dx*nx2:dx*nx2);
+            xcord[1]=dx*nx2;
             for(int nx1=0, idx, idx2; nx1<npx; nx1++){
                 idx=x1+y1+nx1;      //For all the arrays
                 idx2=x2+y2+nx1;     //For VP that have extra size
@@ -435,8 +419,8 @@ int speckle::init_single(int idseed){
                     double yscata=yscat[i];
                     
                     double tmp=M_PI*(2.0*(xcord[0]*xscata+xcord[1]*yscata) //arg
-                              -(xscata*xscata+yscata*yscata)               //arg2
-                              );
+                                     -(xscata*xscata+yscata*yscata)               //arg2
+                                     );
 
                     double arg1=tmp*invlambdafoc;
                     double arg2=tmp*invlambdafoc2;
@@ -471,7 +455,8 @@ int speckle::init_single(int idseed){
         }
     
     stdev=sqrt(stdev*adpp-1.0);
-    printf("speckle st. dev.=%lf\n",stdev);
+
+    fprintf(f18,"# speckle st. dev.=%lf\n",stdev);
     
     const double factor=1.0-1.0/stdev;
     for(int i=0;i<ngridvI;i++){
@@ -495,7 +480,6 @@ int speckle::init_single(int idseed){
         VP[npx*npu2 + npx*npu +   i] = VP[i     ];
         }
     VP[npx*npu2 + npx*npu + npx] = VP[0];
-    
     //We can free memory here because this arrays are not used any more
     free(xscat);
     free(yscat);
@@ -503,8 +487,7 @@ int speckle::init_single(int idseed){
     free(betascat);
     free(ff3);
     free(pvI);
-    fclose(f18);
-    printf("Speckle created\n");
+    fprintf(f18,"# Speckle created\n");
     return 0;
     }
 
@@ -531,13 +514,13 @@ int speckle::init_shell(int idseed){
     
     double complex ffaux;             //this is used as a temp, but in different loops    
 
-    if(strcmp(Specklename[speckletype],"shell")!=0){
+    if(speckletype!="shell"){
         fprintf(stderr,"Error: call %s but Specklename: %s\n",
-                __PRETTY_FUNCTION__, Specklename[speckletype]);
+                __PRETTY_FUNCTION__, speckletype.c_str());
+        printme();
         return 1;
         }
-    printf("Speckletype shell\n");    
-    
+        
     double *pvI=(double*) calloc(ngridvI,sizeof(double)),
         *xscat=(double*) malloc(Nscatterers*sizeof(double)),
         *yscat=(double*) malloc(Nscatterers*sizeof(double)),
@@ -548,14 +531,10 @@ int speckle::init_shell(int idseed){
     //This will have dimension 3
     double complex *ff3=(double complex*) calloc(npx2*npx,sizeof(double complex));
 
-    printf("Creating Speckle\n");
-    FILE *f18=fopen("specklepi3D.dat","a"); dbg_mem(f18);
     srand(idseed); //Seed for random number generator
 
-    for(int i=0;i<npx;i++) xpos[i]=i*dx;
-    
+    for(int i=0;i<npx;i++) xpos[i]=i*dx;    
     xpos[npx]=size;
-    printf("N grid = %d\n",npx);
 
     //sample moduli and phases of scattered waves
     for(int i=0;i<Nscatterers;i++){
@@ -625,9 +604,9 @@ int speckle::init_shell(int idseed){
                 }
             }
         }
-    
+        
     stdev=sqrt(stdev*adpp-1.0);
-    printf("speckle st. dev.=%lf\n",stdev);
+    fprintf(f18,"# speckle st. dev.=%lf\n",stdev);
     
     const double factor=1.0-1.0/stdev;
     for(int i=0;i<ngridvI;i++){
@@ -660,7 +639,6 @@ int speckle::init_shell(int idseed){
     free(zscat);
     free(ff3);
     free(pvI);
-    fclose(f18);
-    printf("Speckle created\n");
+    fprintf(f18,"Speckle created\n");
     return 0;
     }
