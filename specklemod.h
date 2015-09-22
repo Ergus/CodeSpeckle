@@ -11,41 +11,7 @@
 #include <string>
 
 #include "parser.h"
-#include "speckleauxiliary.h"
-
-#define frand()((double)rand()/(RAND_MAX)) //random number generator in (0,1)
-
-//This is a debbuger macro for fft functions that needs to
-//return 0 each speckle will print its own error message before interrupt
-#ifdef MPI_VERSION
-#define printme() {                                                  \
-        fprintf(stderr,"%s in %s:%d (process %s in %s)\n",           \
-                __PRETTY_FUNCTION__, __FILE__, __LINE__,             \
-                getenv("OMPI_COMM_WORLD_RANK"), getenv("HOSTNAME")); \
-        }
-#else
-#define printme() {                                        \
-        fprintf(stderr,"%s in %s:%d\n",                    \
-                __PRETTY_FUNCTION__, __FILE__, __LINE__);  \
-        }
-#endif
-
-
-#define dbg(x) {                                                           \
-        if(x!=0){                                                          \
-            fprintf(stderr,"Error: %s returned %ld",#x, x);                 \
-            printme();                                                     \
-            return(-1);                                                    \
-            }                                                              \
-        }
-
-#define dbg_mem(x) {                                                       \
-        if(x==NULL){                                                       \
-            fprintf(stderr,"Error: %s is %p, after allocation",#x, x);     \
-            printme();                                                     \
-            return(-1);                                                    \
-            }                                                              \
-        }
+#include "auxiliary.h"
 
 using namespace std;
 

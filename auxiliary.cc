@@ -1,4 +1,4 @@
-#include "speckleauxiliary.h"
+#include "auxiliary.h"
 
 void polint(double* xa, double* ya,int n, double x, double &y, double &dy){
     const int NMAX=10;
