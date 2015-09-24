@@ -2,9 +2,9 @@
 
 plasma_solver::plasma_solver(int n, bool ovectors,
                            double omin, double omax):
-    solver(n,ovectors,omin,omax),
-    uplo(PlasmaLower),
-    abstol(LAPACKE_dlamch_work('s')){
+              solver(n,ovectors,omin,omax),
+              uplo(PlasmaLower),
+              abstol(-1){
 
     // initialize plasma system
     PLASMA_Init(0);
@@ -33,10 +33,18 @@ plasma_solver::plasma_solver(int n, bool ovectors,
             exit(EXIT_FAILURE);
             }
         }
+
+    #ifdef DEBUG
+    printf("Constructing plasma solver\n");
+    #endif // DEBUG    
     }
 
 plasma_solver::~plasma_solver(){
-
+    
+    #ifdef DEBUG
+    printf("Destructing plasma solver\n");
+    #endif // DEBUG    
+    
     if(oV) free(oV); oV=NULL;
     
     free(desc);
@@ -45,6 +53,10 @@ plasma_solver::~plasma_solver(){
 
 int plasma_solver::solve(double complex *oA){
 
+    #ifdef DEBUG
+    printf("Solving with plasma solve\n");
+    #endif // DEBUG    
+    
     //Cast for Input Matrix
     PLASMA_Complex64_t *hA=(PLASMA_Complex64_t *)oA;
 
@@ -67,6 +79,10 @@ int plasma_solver::solve(double complex *oA){
         fprintf(stderr,"Error in Plasma call return: info= %d\n",info);
         return(-1);
         }
+
+    #ifdef DEBUG
+    printf("Solved with plasma solve\n");
+    #endif // DEBUG
 
     return 0;
     }

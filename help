@@ -1,0 +1,40 @@
+
+Usage: command [--option value] [--option value] [-o value] input_file
+Valid options are in two groups, all are accepted some values are ignored
+according to the speckletype, solver, or program type:
+
+The long names of the options are the same accepted in the input file.
+Short names only in command line
+
+Default values are assumed from the original code, not all the values ave a default value
+
+Command line parameters overwrite a parameter if also specified in the command line
+    Speckle options:
+    
+    -N, --Nscatterers <int>: default 10
+    -s, --size <double>: default 0.11
+    -v, --vDi  <double>: default 0.05635245901639344262
+    -V, --vDi2  <double>: default 0.05635245901639344262
+    -f, --focal  <double>: default 40.0
+    -F, --focal2 <double>: default 30.0
+    -l, --vlambda <double>: default 8.0e-4
+    -c, --cofactor <double>: default 1.0 
+    -p, --rphase <double>: default 0.0
+    -P, --npmax <int>: default 0
+    -n, --nov <int>: default 4
+    -m, --min <double>: default 0.0
+    -M, --max <double>: default 0.0
+    -i, --intensity <real+imaginary[iI]>: no spaces allowed format is like 12.34+5.678I or 12.34-5.678I, 12.34+5.678i
+    
+    -r, --rescale: no parameter needed, assumed false if not specified.
+    -S, --solver <string>: Possible values are "mkl", "plasma", "magma".
+    -t, --speckletype <string>: no default value (Mandatory) possible values are: "spherical", "sum2", "single" and "shell". Any other value will stop in error.
+    -a, --vectors: No parameter assumed false only is specified
+
+    -o, --file <string>: default "output". Prefix for individual files. If vale is "null" no individual files will be created.
+
+    Run parameters:
+    -b, --begin <int>: default 1
+    -e, --end <int>: no default value
+
+

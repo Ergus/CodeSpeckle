@@ -59,6 +59,9 @@ class solver{
         int get_m(){return m;};                    //getter for number of solutions
         double *get_w(){return w;};                //getter for solutions values
         double complex *get_oV(){return oV;};      //getter for solution vectors
+        virtual ~solver(){
+            if(w) free(w); w=NULL;
+            }        
         
     protected:
         solver(int on, bool ovectors, double omin, double omax):
@@ -74,10 +77,6 @@ class solver{
                 printme();
                 exit(EXIT_FAILURE);
                 }
-            }
-
-        ~solver(){
-            if(w) free(w); w=NULL;
             }
         
         const int n;         // Dimension for the matrix.

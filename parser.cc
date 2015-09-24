@@ -3,7 +3,7 @@
 parser::parser(int argc,char** argv,
                int orank, int oworld_size):
     //Constructor using standard input.
-    Nscatterers(100),
+    Nscatterers(10),
     npmax(0),                 //This values are checked for errors
     nov(4),    
     size(0.11),
@@ -14,7 +14,10 @@ parser::parser(int argc,char** argv,
     vlambda(800.0e-6),
     cofactor(1.0),    
     rphase(0.0),
-    nrescale(false),    	  //shift and rescale sum2 speckle        
+    min(0), max(0),
+    Vintensity(2.0*M_PI*M_PI),    // this is a complex number
+    nrescale(false),    	  //shift and rescale sum2 speckle
+    vectors(false),
     //run needed
     start(0), fprefix("output"),
     //MPI needed
@@ -48,18 +51,20 @@ parser::parser(int argc,char** argv,
         {"vlambda", required_argument, 0, 'l'},
         {"cofactor", required_argument, 0, 'c'},
         {"rphase", required_argument, 0, 'p'},
-        {"npmax", required_argument, 0, 'm'},
+        {"npmax", required_argument, 0, 'P'},
         {"speckletype", required_argument, 0, 't'},
         {"nov", required_argument, 0, 'n'},
-        {"rescale", no_argument, 0, 'r'},
-        
+        {"intensity", required_argument, 0, 'i'},
+        {"min", required_argument, 0, 'm'},
+        {"max", required_argument, 0, 'M'},
         //now some extra variables for runtime
-        {"start", required_argument, 0, '1'},    //starting point
-        {"end", required_argument, 0, '2'},      //end point
+        {"begin", required_argument, 0, 'b'},    //starting point
+        {"end", required_argument, 0, 'e'},      //end point
         {"solver", required_argument, 0, 'S'},   //solver type
-        {"file", required_argument, 0, 'P'},     //output_prefix
+        {"file", required_argument, 0, 'o'},     //output_prefix
 
-        //please improve this option as needed
+        {"rescale", no_argument, 0, 'r'},
+        {"vectors", no_argument, 0, 'a'},        
         {"help", no_argument, 0, 'h'},
         
         //mandatory for end condition        
@@ -72,7 +77,7 @@ parser::parser(int argc,char** argv,
     optind=1;    //this is a global variable reseted to restart reading the argumemts; 
     
     //This looks terrible, I know, but it is the saver way
-    while((c=getopt_long(largc, largv, "N:s:v:V:f:F:l:c:p:m:s:n:rh",
+    while((c=getopt_long(largc, largv, "N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:rah",
                          longopts, &option_index))!=-1){
         if(c=='h') use_option(c,optarg);
         };
@@ -120,7 +125,7 @@ parser::parser(int argc,char** argv,
     
     //parse command line arguments
     optind=1;
-    while((c=getopt_long(largc, largv, "N:s:v:V:f:F:l:c:p:m:s:n:rh",
+    while((c=getopt_long(largc, largv, "N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:rah",
                          longopts, &option_index))!=-1){
         use_option(c,optarg);
         }    
@@ -129,8 +134,19 @@ parser::parser(int argc,char** argv,
 
 void parser::print_help(){
     if(rank==0){
-        printf("This is the help needs to be updated\n");
+        int c;
+        FILE *file;
+        file = fopen("help", "r");
+        if (file) {
+            while ((c = getc(file)) != EOF)
+                putchar(c);
+            fclose(file);
+            }
+        else{
+            fprintf(stderr,"no help file found\n");
+            }
         }
+    exit(EXIT_SUCCESS);
     }
 
 void parser::print(FILE* ou,char pre){
@@ -147,14 +163,17 @@ void parser::print(FILE* ou,char pre){
     fprintf(ou,"%c npmax\t %d\n",pre,npmax);
     fprintf(ou,"%c speckletype\t %s\n",pre,speckletype.c_str());
     fprintf(ou,"%c nov\t %d\n",pre,nov);
+    fprintf(ou,"%c vectors\t %s\n",pre,vectors?"true":"false");
+    fprintf(ou,"%c intensity\t %lf%+lfI\n", pre, creal(Vintensity), cimag(Vintensity));
 
+    fprintf(ou,"%c min\t %lf\n",pre,min);
+    fprintf(ou,"%c max\t %lf\n",pre,max);
 
-    fprintf(ou,"%c start\t %d\n",pre,start);
+    fprintf(ou,"%c begin\t %d\n",pre,start);
     fprintf(ou,"%c end\t %d\n",pre,end);
                    
     fprintf(ou,"%c solver\t %s\n",pre,solver.c_str());
     fprintf(ou,"%c file prefix\t %s\n",pre,fprefix.c_str());
-    
     }
 
 void parser::use_option(int opt,const char* thearg){
@@ -177,25 +196,38 @@ void parser::use_option(int opt,const char* thearg){
             cofactor=atof(thearg); break;
         case 'p':
             rphase=atof(thearg); break;
-        case 'm':
+        case 'P':
             npmax=atoi(thearg); break;
         case 't':
             speckletype=thearg; break;
         case 'n':
             nov=atoi(thearg); break;
+        case 'i':
+            double real, imag;
+            sscanf(thearg,"%lf %lf[Ii]",&real,&imag);
+            Vintensity=real+imag*I;
+            break;
         case 'r':
             nrescale=true; break;
-        case '1':
+        case 'a':
+            vectors=true; break;      
+            
+        case 'M':
+            min=atof(thearg); break;
+        case 'm':
+            max=atof(thearg); break;
+            
+        case 'b':
             start=atoi(thearg); break;
-        case '2':
+        case 'e':
             end=atoi(thearg); break;
+            
         case 'S':
             solver=thearg; break;
-        case 'P':
+        case 'o':
             fprefix=thearg; break;
         case 'h':
             print_help();
-            exit(EXIT_SUCCESS);
         case ':':
         case '?':
             if(rank==0){

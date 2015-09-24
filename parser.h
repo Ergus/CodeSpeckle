@@ -7,6 +7,9 @@
 #include <string.h>
 #include <getopt.h>
 #include <algorithm>
+#include <complex.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 using namespace std;
 
@@ -18,8 +21,10 @@ class parser{
         //Speckle variables
         int Nscatterers, npmax, nov;
         double size, vDi, vDi2, focal, focal2,
-            vlambda, cofactor, rphase;
-        bool nrescale;
+            vlambda, cofactor, rphase,
+            min, max;                 //Added the limits for values to search
+        double complex Vintensity;
+        bool nrescale, vectors;
         string speckletype;
 
         //Run important variables

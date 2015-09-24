@@ -18,9 +18,9 @@ npmax  10
 nov 4
 speckletype single
 nov 0
-
+solver mkl
+intensity 2.0+0.0I
 start 1
 end 1
 
-solver plasma
 file salida

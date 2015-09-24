@@ -80,9 +80,18 @@ magma_solver::magma_solver(int on, bool ovectors,
     liwork = aux_iwork[0];
     lrwork = (magma_int_t) aux_rwork[0];
 
+    #ifdef DEBUG
+    printf("Constructing magma solver\n");
+    #endif // DEBUG    
+    
     }
 
 magma_solver::~magma_solver(){
+
+    #ifdef DEBUG
+    printf("Destructing magma solver\n");
+    #endif // DEBUG
+    
     if(rwork) magma_free_cpu(rwork);
     if(iwork) magma_free_cpu(iwork);
     if(work)  magma_free_cpu(work);
@@ -91,6 +100,10 @@ magma_solver::~magma_solver(){
     }
 
 int magma_solver::solve(double complex *oA){
+
+    #ifdef DEBUG
+    printf("Solving with magma solve\n");
+    #endif // DEBUG    
     
     //Cast for Input Matrix
     magmaDoubleComplex *hA = (magmaDoubleComplex *) oA;
@@ -166,6 +179,10 @@ int magma_solver::solve(double complex *oA){
     magma_free_cpu(rwork); rwork=NULL;
     magma_free_cpu(iwork); iwork=NULL;
     magma_free_cpu(work);   work=NULL;
+
+    #ifdef DEBUG
+    printf("Solved with magma solve\n");
+    #endif // DEBUG        
 
     return 0;
     }

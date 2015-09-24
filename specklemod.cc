@@ -19,20 +19,28 @@ speckle::speckle(parser *thepar):
     cofactor(thepar->cofactor),
     rphase(thepar->rphase),
     nrescale(thepar->nrescale),
+    vectors(thepar->vectors),
     pointer_init(NULL),
     parptr(thepar),   //The parser pointer will point to the argument parser
     f18(NULL),
+    Vintensity(thepar->Vintensity),
     fprefix(thepar->fprefix),
     speckletype(thepar->speckletype),
-    solver(thepar->solver)
-    
+    solver(thepar->solver),
+    min(thepar->min),
+    max(thepar->max),
+    thesolver(NULL)
 {
     
     npxpu=npmax+1;
+    Ntot=npmax*npmax*npmax;
 
     dx =size/double(npmax);
     dxi=double(npmax)/size;
 
+    sprintf(outputname,"/dev/null");    
+
+    //Set the speckle type to use
     if(speckletype=="spherical") pointer_init=&speckle::init_spherical;
     else if(speckletype=="sum2") pointer_init=&speckle::init_sum2;
     else if(speckletype=="shell") pointer_init=&speckle::init_shell;
@@ -40,8 +48,31 @@ speckle::speckle(parser *thepar):
     else{
         if(parptr->rank==0){
             fprintf(stderr,"Error the speckletype name provided is not valid\n");
-            fprintf(stderr,"please check the input file or the command line provided\n");
+            fprintf(stderr,"please check the input file or the command line\n");
             }
+        exit(EXIT_FAILURE);
+        }
+    
+    //set the solver to use
+    if(solver=="mkl"){
+        thesolver=new mkl_solver(Ntot,vectors,min,max);
+        }
+    #ifdef UMAGMA
+    else if(solver=="magma"){
+        thesolver=new magma_solver(Ntot,vectors,min,max,2);
+        }
+    else if(solver=="magma_2stage"){
+        thesolver=new magma_solver_2stage(Ntot,vectors,min,max,2);
+        }
+    #endif
+    #ifdef UPLASMA
+    else if(solver=="plasma"){
+        thesolver=new plasma_solver(Ntot,vectors,min,max);
+        }
+    #endif
+    else{
+        fprintf(stderr,"The value provided for the solver=%s is not valid\n",solver.c_str());
+        printme();
         exit(EXIT_FAILURE);
         }
     }
@@ -52,9 +83,11 @@ int speckle::init(int idseed){
     if(!xpos) dbg_mem((xpos=(double*) malloc(npxpu*sizeof(double))));
 
     //set the output name for this seed
-    sprintf(outputname,"%s_%s_%d.out",fprefix.c_str(),speckletype.c_str(),idseed);
+    if((fprefix!="null")&&(fprefix!="NULL")){
+        sprintf(outputname,"%s_%s_%d.out",fprefix.c_str(),speckletype.c_str(),idseed);
+        }
     //open the file just for a moment the close it
-    dbg_mem((f18=fopen(outputname,"a")));
+    f18=fopen(outputname,"a"); dbg_mem(f18);
     parptr->print(f18,'#');
     fprintf(f18,"# seed\t %d\n",idseed);
     //execute the init
@@ -64,6 +97,7 @@ int speckle::init(int idseed){
     }
 
 speckle::~speckle(){
+    if(thesolver) delete thesolver;
     if(xpos) free(xpos);    
     if(VP) free(VP);
     if(A) free(A);
@@ -171,7 +205,7 @@ int speckle::ftspeckle(){
 
 int speckle::defineA(){
     double deltaT=(2.0*M_PI/size);
-    const int Ntot=npmax*npmax*npmax, npx=npmax, npx2=npmax*npmax;    
+    const int npx=npmax, npx2=npmax*npmax;    
 
     f18=fopen(outputname, "a");
     fprintf(f18,"# The dimension of the matrix is %d\n", Ntot);

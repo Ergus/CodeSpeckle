@@ -1,9 +1,9 @@
 #include "magma_solver.h"
 
-magma_solver::magma_solver(int odim, bool ovectors,
-                           double omin=0.0, double omax=0.0,
+magma_solver_2stage::magma_solver_2stage(int on, bool ovectors,
+                           double omin, double omax,
                            int ongpu):
-    solver(odim,ovectors,omin,omax),
+    solver(on,ovectors,omin,omax),
     ngpu(ongpu), uplo(MagmaLower),
     iwork(NULL),rwork(NULL),work(NULL){
 
@@ -24,7 +24,7 @@ magma_solver::magma_solver(int odim, bool ovectors,
 
     //First call to get right sizes;
 
-    if(ongpu==1){
+    if(ngpu==1){
         magma_zheevdx_2stage(
                       jobz, range, uplo,
                       n, NULL, n, min, max, 0, 0,
@@ -58,9 +58,18 @@ magma_solver::magma_solver(int odim, bool ovectors,
     liwork = aux_iwork[0];
     lrwork = (magma_int_t) aux_rwork[0];
 
+    #ifdef DEBUG
+    printf("Constructing magma solver_2stage\n");
+    #endif // DEBUG        
+
     }
 
-magma_solver::~magma_solver(){
+magma_solver_2stage::~magma_solver_2stage(){
+
+    #ifdef DEBUG
+    printf("Destructing magma solver_2stage\n");
+    #endif // DEBUG
+    
     if(rwork) magma_free_cpu(rwork);
     if(iwork) magma_free_cpu(iwork);
     if(work)  magma_free_cpu(work);
@@ -68,8 +77,12 @@ magma_solver::~magma_solver(){
     magma_finalize();
     }
 
-int magma_solver::solve(double complex *oA){
+int magma_solver_2stage::solve(double complex *oA){
 
+    #ifdef DEBUG
+    printf("Solving with magma_2stage solver\n");
+    #endif // DEBUG
+    
     //Cast for Input Matrix
     magmaDoubleComplex *hA = (magmaDoubleComplex *) oA;
 
@@ -84,10 +97,10 @@ int magma_solver::solve(double complex *oA){
     if(iwork) free(iwork); magma_imalloc_cpu(&iwork,liwork); dbg_mem(iwork);
     if(rwork) free(rwork); magma_dmalloc_cpu(&rwork,lrwork); dbg_mem(rwork);
 
-    if(ongpu==1){
+    if(ngpu==1){
         magma_zheevdx_2stage(
                       jobz, range, uplo,
-                      n, ha, n, min, max, 0, 0,
+                      n, hA, n, min, max, 0, 0,
                       &m, w,
                       work, lwork,
                       rwork, lrwork,
@@ -99,7 +112,7 @@ int magma_solver::solve(double complex *oA){
         magma_zheevdx_2stage_m(
                         ngpu,
                         jobz, range, uplo,
-                        n, ha, n, min, max, 0, 0,
+                        n, hA, n, min, max, 0, 0,
                         &m, w,
                         work, lwork,
                         rwork, lrwork,
@@ -116,6 +129,10 @@ int magma_solver::solve(double complex *oA){
     magma_free_cpu(rwork); rwork=NULL;
     magma_free_cpu(iwork); iwork=NULL;
     magma_free_cpu(work);   work=NULL;
-
+    
+    #ifdef DEBUG
+    printf("Solved with magma_2stage solver\n");
+    #endif // DEBUG
+    
     return 0;
     }

@@ -3,7 +3,7 @@
 
 #include "solver.h"
 #include <plasma.h>
-#include <lapacke.h>
+//#include <lapacke.h>
 
 //Here are declared both magma solvers.
 

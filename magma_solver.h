@@ -3,7 +3,7 @@
 
 #include "solver.h"
 #include "magma.h"
-#include "magma_lapack.h"
+//#include "magma_lapack.h"
 
 //Here are declared both magma solvers.
 
@@ -29,13 +29,16 @@ class magma_solver:public solver{
 
 class magma_solver_2stage:public solver{
     public:
-        magma_solver_2stage(int on, bool ovectors=false, int ongpu=1);
+        magma_solver_2stage(int on, bool ovectors=false,
+                            double omin=0.0, double omax=0.0,
+                            int ongpu=1);
         ~magma_solver_2stage();
         int solve(double complex* oA);
     private:
-        const magma_vec_t jobz;
+        magma_vec_t jobz;
         const magma_uplo_t uplo;
-        const magma_int_t ngpu, n;
+        magma_range_t range;    
+        const magma_int_t ngpu;
         magma_int_t lwork, liwork, lrwork, info;
 
         //Needed arrays (work space)

@@ -21,15 +21,25 @@ mkl_solver::mkl_solver(int n, bool ovectors,
             exit(EXIT_FAILURE);
             }
         }
-    
+    #ifdef DEBUG
+    printf("Constructing mkl solver\n");
+    #endif // DEBUG
     }
 
 mkl_solver::~mkl_solver(){
     if((jobz=='V')&&(range=='V')&&(oV)) free(oV); oV=NULL;
+    
+    #ifdef DEBUG
+    printf("Destructing mkl solver\n");
+    #endif // DEBUG    
     }
 
 int mkl_solver::solve(double complex *oA){
-
+    
+    #ifdef DEBUG
+    printf("Solving with mkl solve\n");
+    #endif // DEBUG
+    
     //Cast for Input Matrix and output
     MKL_Complex16 *hA=(MKL_Complex16*) oA;
     MKL_Complex16 *toV=(MKL_Complex16*) oV; 
@@ -50,5 +60,9 @@ int mkl_solver::solve(double complex *oA){
         return(-1);
         }
 
+    #ifdef DEBUG
+    printf("Solved with mkl solve\n");
+    #endif // DEBUG    
+    
     return 0;
     }
