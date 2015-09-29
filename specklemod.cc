@@ -1,36 +1,42 @@
 #include "specklemod.h"
 
-
-speckle::speckle(parser *thepar):
+speckle::speckle(int argc, char **argv):
+    // pointers and arrays
     Vk(NULL),
     xpos(NULL),
     A(NULL),
     VP(NULL),
-    //now copy the values needed from the parser
-    Nscatterers(thepar->Nscatterers),
-    npmax(thepar->npmax),
-    nov(thepar->nov),
-    size(thepar->size),
-    vDi(thepar->vDi),
-    vDi2(thepar->vDi2),    
-    focal(thepar->focal),
-    focal2(thepar->focal2),    
-    vlambda(thepar->vlambda),
-    cofactor(thepar->cofactor),
-    rphase(thepar->rphase),
-    nrescale(thepar->nrescale),
-    vectors(thepar->vectors),
+    thesolver(NULL),
     pointer_init(NULL),
-    parptr(thepar),   //The parser pointer will point to the argument parser
     f18(NULL),
-    Vintensity(thepar->Vintensity),
-    fprefix(thepar->fprefix),
-    speckletype(thepar->speckletype),
-    solver(thepar->solver),
-    min(thepar->min),
-    max(thepar->max),
-    thesolver(NULL)
+    // ints
+    Nscatterers(10),
+    npmax(0),                      // This values are checked for errors
+    nov(4),
+    // doubles
+    size(0.11),
+    vDi(0.05635245901639344262),
+    vDi2(0.05635245901639344262),    
+    focal(40.0),
+    focal2(30.0),
+    vlambda(800.0e-6),
+    cofactor(1.0),    
+    rphase(0.0),
+    min(0), max(0),
+    // complex number
+    Vintensity(2.0*M_PI*M_PI),
+    // bools
+    nrescale(false),    	   // shift and rescale sum2 speckle
+    vectors(false),
+    //run needed
+    fprefix("output"),
+    largc(argc), largv(argv),
+    thehist(NULL)
+    
 {
+    STARTDBG
+    parse();
+    it=start;
     
     npxpu=npmax+1;
     Ntot=npmax*npmax*npmax;
@@ -45,12 +51,10 @@ speckle::speckle(parser *thepar):
     else if(speckletype=="sum2") pointer_init=&speckle::init_sum2;
     else if(speckletype=="shell") pointer_init=&speckle::init_shell;
     else if(speckletype=="single") pointer_init=&speckle::init_single;
-    else{
-        if(parptr->rank==0){
-            fprintf(stderr,"Error the speckletype name provided is not valid\n");
-            fprintf(stderr,"please check the input file or the command line\n");
-            }
-        exit(EXIT_FAILURE);
+    else{    
+        fprintf(stderr,"Error the speckletype name provided is not valid\n");
+        fprintf(stderr,"please check the input file or the command line\n");
+        exit(EXIT_FAILURE);        
         }
     
     //set the solver to use
@@ -59,10 +63,10 @@ speckle::speckle(parser *thepar):
         }
     #ifdef UMAGMA
     else if(solver=="magma"){
-        thesolver=new magma_solver(Ntot,vectors,min,max,2);
+        thesolver=new magma_solver(Ntot,vectors,min,max,ngpu);
         }
     else if(solver=="magma_2stage"){
-        thesolver=new magma_solver_2stage(Ntot,vectors,min,max,2);
+        thesolver=new magma_solver_2stage(Ntot,vectors,min,max,ngpu);
         }
     #endif
     #ifdef UPLASMA
@@ -71,41 +75,51 @@ speckle::speckle(parser *thepar):
         }
     #endif
     else{
-        fprintf(stderr,"The value provided for the solver=%s is not valid\n",solver.c_str());
+        fprintf(stderr,"Solver=%s is not valid\n",solver.c_str());
+        fprintf(stderr,"Maybe a compilation time option not set\n");
         printme();
         exit(EXIT_FAILURE);
         }
+    #ifdef DEBUG
+    print();
+    #endif //DEBUG
+    ENDDBG
     }
 
+speckle::~speckle(){
+    STARTDBG
+    if(thesolver) delete thesolver;
+    if(thehist) delete thehist;
+    if(xpos) free(xpos);    
+    if(VP) free(VP);
+    if(A) free(A);
+    ENDDBG
+    }
+
+
 int speckle::init(int idseed){
+    STARTDBG
     //Allocate VP and xpos just ifthey are NULL  
     if(!VP) dbg_mem((VP=(double*) malloc(npxpu*npxpu*npxpu*sizeof(double))));
     if(!xpos) dbg_mem((xpos=(double*) malloc(npxpu*sizeof(double))));
 
-    //set the output name for this seed
     if((fprefix!="null")&&(fprefix!="NULL")){
         sprintf(outputname,"%s_%s_%d.out",fprefix.c_str(),speckletype.c_str(),idseed);
         }
     //open the file just for a moment the close it
     f18=fopen(outputname,"a"); dbg_mem(f18);
-    parptr->print(f18,'#');
+    print(f18,'#');
     fprintf(f18,"# seed\t %d\n",idseed);
     //execute the init
     (this->*pointer_init)(idseed);
     fclose(f18);
+    ENDDBG
     return(0);
     }
 
-speckle::~speckle(){
-    if(thesolver) delete thesolver;
-    if(xpos) free(xpos);    
-    if(VP) free(VP);
-    if(A) free(A);
-    }
-
-
 int speckle::ftspeckle(){
-    //In all the cases N1==N2==N3 so the original Ni vars in the code were sustituted for npx
+    STARTDBG
+    //In all the cases N1==N2==N3 so the original Ni vars were sustituted by npx
     const int npx=npmax, npx2=npx*npx, npu=npxpu, npu2=npxpu*npxpu, padx=npx/2+1;
     
     MKL_LONG status;
@@ -200,10 +214,12 @@ int speckle::ftspeckle(){
     free(x_cmplx);
     fprintf(f18,"# Ftspeckle ended ok\n");
     fclose(f18);
+    ENDDBG
     return 0;
     }
 
 int speckle::defineA(){
+    STARTDBG
     double deltaT=(2.0*M_PI/size);
     const int npx=npmax, npx2=npmax*npmax;    
 
@@ -258,5 +274,17 @@ int speckle::defineA(){
     free(Vk); //Vk is not used anymore and we need memory to diagonalization
     fprintf(f18,"# Matrix A Defined correctly\n");
     fclose(f18);
+    ENDDBG
     return 0;
     }
+
+
+int speckle::process(int nvalues, double*array){
+    STARTDBG
+    if(!thehist) thehist=new histogram(this, 0.5); dbg_mem(thehist);
+    dbg(thehist->process(nvalues,array));
+    ENDDBG
+    return 0;
+    }
+
+

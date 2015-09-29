@@ -11,7 +11,7 @@ CXXFLAGS = -O2
 
 # Here start the rules.
 FILE = main.x
-LIBS = auxiliary.o specklemod.o inits.o parser.o
+LIBS = auxiliary.o histogram.o specklemod.o inits.o parser.o parallel.o
 
 ##-----------------------------------------------
 # Check libraries mkl (mandatory), plasma and magma

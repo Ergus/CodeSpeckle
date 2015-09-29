@@ -5,7 +5,7 @@ plasma_solver::plasma_solver(int n, bool ovectors,
               solver(n,ovectors,omin,omax),
               uplo(PlasmaLower),
               abstol(-1){
-
+    STARTDBG
     // initialize plasma system
     PLASMA_Init(0);
     
@@ -13,7 +13,7 @@ plasma_solver::plasma_solver(int n, bool ovectors,
     range =(min==max?PlasmaAllVec:PlasmaVec);
     
     if(range==PlasmaAllVec){
-        info=PLASMA_Alloc_Workspace_zheevd(n,n,&desc);
+        info=PLASMA_Alloc_Workspace_zheev(n,n,&desc);
         }
     else{ //range==PlasmaVec
         info=PLASMA_Alloc_Workspace_zheevr(n,n,&desc);
@@ -34,34 +34,27 @@ plasma_solver::plasma_solver(int n, bool ovectors,
             }
         }
 
-    #ifdef DEBUG
-    printf("Constructing plasma solver\n");
-    #endif // DEBUG    
+    ENDDBG
     }
 
 plasma_solver::~plasma_solver(){
-    
-    #ifdef DEBUG
-    printf("Destructing plasma solver\n");
-    #endif // DEBUG    
+    STARTDBG
     
     if(oV) free(oV); oV=NULL;
     
     free(desc);
-    PLASMA_Finalize();    
+    PLASMA_Finalize();
+    ENDDBG
     }
 
 int plasma_solver::solve(double complex *oA){
-
-    #ifdef DEBUG
-    printf("Solving with plasma solve\n");
-    #endif // DEBUG    
+    STARTDBG
     
     //Cast for Input Matrix
     PLASMA_Complex64_t *hA=(PLASMA_Complex64_t *)oA;
 
     if(range=PlasmaAllVec){
-        info=PLASMA_zheevd(jobz, uplo, n,
+        info=PLASMA_zheev(jobz, uplo, n,
                            hA, n, w, desc,
                            oV, n);
         }
@@ -74,15 +67,11 @@ int plasma_solver::solve(double complex *oA){
 
         }
 
-
     if(info!=PLASMA_SUCCESS){
         fprintf(stderr,"Error in Plasma call return: info= %d\n",info);
         return(-1);
         }
-
-    #ifdef DEBUG
-    printf("Solved with plasma solve\n");
-    #endif // DEBUG
-
+    
+    ENDDBG
     return 0;
     }

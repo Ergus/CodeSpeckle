@@ -220,18 +220,17 @@ int speckle::init_sum2(int idseed){
             double tmp2 = 2.0*vmaxradscat2*frand()-vmaxradscat2;
             //putting points in grid
             //Here round remplaces ANINT in fortran code
-            xscat2[i] = deltaR2 * round(tmp1/deltaR);
-            zscat2[i] = deltaR2 * round(tmp2/deltaR);         
+            xscat2[i] = deltaR2 * round(tmp1/deltaR2);
+            zscat2[i] = deltaR2 * round(tmp2/deltaR2);         
             }while((xscat2[i]*xscat2[i]+zscat2[i]*zscat2[i])>vmaxradscat2quad);
         }
 
     //Create Speckle
     for(int nx3=0, x1=0, x2=0; nx3<npx; nx3++, x1+=npx2, x2+=npu2){
-        double temp=focal+dx*nx3;
-        xcord[2]=temp;
+        xcord[2]=focal+dx*nx3;
         invlambdafoc2=1.0/(vlambda*focal2);
         for(int nx2=0, y1=0, y2=0; nx2<npx; nx2++, y1+=npx, y2+=npu){
-            xcord[1]=focal+dx*nx2;
+            xcord[1]=focal2+dx*nx2;
             for(int nx1=0, idx, idx2; nx1<npx; nx1++){
                 idx=x1+y1+nx1;      //For all the arrays
                 idx2=x2+y2+nx1;     //For VP that have extra size                
@@ -240,12 +239,14 @@ int speckle::init_sum2(int idseed){
                     double xscata=xscat[i];
                     double yscata=yscat[i];
                     double xscata2=xscat2[i];
-                    double zscata2=zscat2[i];        //yscata2 sustitutes zscata from fortran
-                    double arg1=M_PI*(2.0*(xcord[0]*xscata+xcord[1]*yscata)  //arg in Fortran
-                                      -(xscata*xscata+yscata*yscata)                //arg2 in Fortran
+                    double zscata2=zscat2[i];  
+
+                    //arg in Fortran
+                    double arg1=M_PI*(2.0*(xcord[0]*xscata+xcord[1]*yscata)  
+                                      -(xscata*xscata+yscata*yscata)  //arg2 in Fortran
                                       )*invlambdafoc;
                         
-                    double arg2=M_PI*(2.0*(xcord[0]*xscata2+xcord[1]*zscata2)   
+                    double arg2=M_PI*(2.0*(xcord[0]*xscata2+xcord[2]*zscata2)   
                                       -(xscata2*xscata2+zscata2*zscata2)      
                                       )*invlambdafoc2;
 

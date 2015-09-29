@@ -6,7 +6,7 @@ magma_solver::magma_solver(int on, bool ovectors,
     solver(on,ovectors,omin,omax),
     ngpu(ongpu), uplo(MagmaLower),
     iwork(NULL),rwork(NULL),work(NULL){
-
+    STARTDBG
     // initialize magma system
     magma_init();
     
@@ -80,14 +80,11 @@ magma_solver::magma_solver(int on, bool ovectors,
     liwork = aux_iwork[0];
     lrwork = (magma_int_t) aux_rwork[0];
 
-    #ifdef DEBUG
-    printf("Constructing magma solver\n");
-    #endif // DEBUG    
-    
+    ENDDBG
     }
 
 magma_solver::~magma_solver(){
-
+    STARTDBG
     #ifdef DEBUG
     printf("Destructing magma solver\n");
     #endif // DEBUG
@@ -97,13 +94,11 @@ magma_solver::~magma_solver(){
     if(work)  magma_free_cpu(work);
     
     magma_finalize();
+    ENDDBG
     }
 
 int magma_solver::solve(double complex *oA){
-
-    #ifdef DEBUG
-    printf("Solving with magma solve\n");
-    #endif // DEBUG    
+    STARTDBG
     
     //Cast for Input Matrix
     magmaDoubleComplex *hA = (magmaDoubleComplex *) oA;
@@ -171,18 +166,15 @@ int magma_solver::solve(double complex *oA){
             }
         }
 
+    magma_free_cpu(rwork); rwork=NULL;
+    magma_free_cpu(iwork); iwork=NULL;
+    magma_free_cpu(work);   work=NULL;
+    
     if(info!=0){
         fprintf(stderr,"Error in magma call return: info= %d\n",info);
         return(-1);
         }
 
-    magma_free_cpu(rwork); rwork=NULL;
-    magma_free_cpu(iwork); iwork=NULL;
-    magma_free_cpu(work);   work=NULL;
-
-    #ifdef DEBUG
-    printf("Solved with magma solve\n");
-    #endif // DEBUG        
-
+    ENDDBG
     return 0;
     }

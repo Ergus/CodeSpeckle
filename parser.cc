@@ -1,91 +1,70 @@
-#include "parser.h"
+#include "specklemod.h"
 
-parser::parser(int argc,char** argv,
-               int orank, int oworld_size):
-    //Constructor using standard input.
-    Nscatterers(10),
-    npmax(0),                 //This values are checked for errors
-    nov(4),    
-    size(0.11),
-    vDi(0.05635245901639344262),
-    vDi2(0.05635245901639344262),    
-    focal(40.0),
-    focal2(30.0),
-    vlambda(800.0e-6),
-    cofactor(1.0),    
-    rphase(0.0),
-    min(0), max(0),
-    Vintensity(2.0*M_PI*M_PI),    // this is a complex number
-    nrescale(false),    	  //shift and rescale sum2 speckle
-    vectors(false),
-    //run needed
-    start(0), fprefix("output"),
-    //MPI needed
-    rank(orank), world_size(oworld_size),
-    local_rank(0), local_size(1),
-    largc(argc), largv(argv){
-    
-    hostname=getenv("HOSTNAME");
-
-    if (largc==1){
-        if(rank==0){
-            printf("\tUsage: executable [--opt1 val1] [--opt2 val2]... input_file\n");
-            printf("\ttype \"executable -h\" for the full list of valid arguments\n\n");
-            }
-        exit(EXIT_FAILURE);
-        }
-    
-    if(rank>0){
-        local_rank = atoi( getenv("OMPI_COMM_WORLD_LOCAL_RANK"));
-        local_size = atoi( getenv("OMPI_COMM_WORLD_LOCAL_SIZE"));
-        }
-    
+int speckle::parse(){
+    STARTDBG
     struct option longopts[] = {
-        //first the variables available in the original code
-        {"Nscatterers", required_argument, 0, 'N'},
-        {"size", required_argument, 0, 's'},
-        {"vDi", required_argument, 0, 'v'},
-        {"vDi2", required_argument, 0, 'V'},
-        {"focal", required_argument, 0, 'f'},
-        {"focal2", required_argument, 0, 'F'},
-        {"vlambda", required_argument, 0, 'l'},
-        {"cofactor", required_argument, 0, 'c'},
-        {"rphase", required_argument, 0, 'p'},
-        {"npmax", required_argument, 0, 'P'},
-        {"speckletype", required_argument, 0, 't'},
-        {"nov", required_argument, 0, 'n'},
-        {"intensity", required_argument, 0, 'i'},
-        {"min", required_argument, 0, 'm'},
-        {"max", required_argument, 0, 'M'},
-        //now some extra variables for runtime
-        {"begin", required_argument, 0, 'b'},    //starting point
-        {"end", required_argument, 0, 'e'},      //end point
-        {"solver", required_argument, 0, 'S'},   //solver type
-        {"file", required_argument, 0, 'o'},     //output_prefix
+    //first the variables available in the original code
+    {"Nscatterers", required_argument, 0, 'N'},
+    {"size", required_argument, 0, 's'},
+    {"vDi", required_argument, 0, 'v'},
+    {"vDi2", required_argument, 0, 'V'},
+    {"focal", required_argument, 0, 'f'},
+    {"focal2", required_argument, 0, 'F'},
+    {"vlambda", required_argument, 0, 'l'},
+    {"cofactor", required_argument, 0, 'c'},
+    {"rphase", required_argument, 0, 'p'},
+    {"npmax", required_argument, 0, 'P'},
+    {"speckletype", required_argument, 0, 't'},
+    {"nov", required_argument, 0, 'n'},
+    {"intensity", required_argument, 0, 'i'},
+    {"min", required_argument, 0, 'm'},
+    {"max", required_argument, 0, 'M'},
+    //now some extra variables for runtime
+    {"begin", required_argument, 0, 'b'},    //starting point
+    {"end", required_argument, 0, 'e'},      //end point
+    {"solver", required_argument, 0, 'S'},   //solver type
+    {"file", required_argument, 0, 'o'},     //output_prefix
+    {"gpu", required_argument, 0, 'G'},      //ngpu
+    {"cpu", required_argument, 0, 'C'},      //ncpu
 
-        {"rescale", no_argument, 0, 'r'},
-        {"vectors", no_argument, 0, 'a'},        
-        {"help", no_argument, 0, 'h'},
+    {"rescale", no_argument, 0, 'r'},
+    {"vectors", no_argument, 0, 'a'},        
+    {"help", no_argument, 0, 'h'},
         
-        //mandatory for end condition        
-        {0, 0, 0, 0}
-        };
+    {0, 0, 0, 0}         //mandatory for end condition
+        
+    };
 
     size_t len=0;
     char *line, w1[50], w2[50];
     int c, option_index = 0, i=0, linenum=0;
     optind=1;    //this is a global variable reseted to restart reading the argumemts; 
-    
-    //This looks terrible, I know, but it is the saver way
-    while((c=getopt_long(largc, largv, "N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:rah",
+
+    // read all the options
+    while((c=getopt_long(largc, largv, "N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:C:G:rah",
                          longopts, &option_index))!=-1){
-        if(c=='h') use_option(c,optarg);
-        };
+        if(c=='h'){
+            if(rank==0){
+                int c;
+                FILE *file;
+                file = fopen("help", "r");
+                if (file) {
+                    while ((c = getc(file)) != EOF)
+                        putchar(c);
+                    fclose(file);
+                    }
+                else{
+                    fprintf(stderr,"no help file found\n");
+                    }
+                }
+            exit(EXIT_SUCCESS);            
+            }
+        }
     if(optind>=largc){                       //error no Input file
         if(rank==0){
             fprintf(stderr,"Error: missing arguments, please check the command line\n");
             }
-            exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
         }
     
     FILE* fp=fopen(largv[optind],"r");
@@ -113,6 +92,9 @@ parser::parser(int argc,char** argv,
                         exit(EXIT_FAILURE);
                         }
                     if(strcmp(w1,curopt.name)==0){
+                        #ifdef DEBUG
+                        fprintf(stderr,"Parsing: %s %s\n",w1,w2);
+                        #endif //DEBUG
                         use_option(curopt.val,w2);
                         break;
                         }
@@ -125,109 +107,75 @@ parser::parser(int argc,char** argv,
     
     //parse command line arguments
     optind=1;
-    while((c=getopt_long(largc, largv, "N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:rah",
+    while((c=getopt_long(largc, largv, "N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:C:G:rah",
                          longopts, &option_index))!=-1){
         use_option(c,optarg);
-        }    
-
-    }
-
-void parser::print_help(){
-    if(rank==0){
-        int c;
-        FILE *file;
-        file = fopen("help", "r");
-        if (file) {
-            while ((c = getc(file)) != EOF)
-                putchar(c);
-            fclose(file);
-            }
-        else{
-            fprintf(stderr,"no help file found\n");
-            }
         }
-    exit(EXIT_SUCCESS);
+    ENDDBG
+    return 0;
     }
 
-void parser::print(FILE* ou,char pre){
+void speckle::print(FILE* ou,char pre){
     fprintf(ou,"%c Nscatterers\t %d\n",pre,Nscatterers);
-    fprintf(ou,"%c nrescale\t %s\n",pre,nrescale?"true":"false");
-    fprintf(ou,"%c size\t %lf\n",pre,size);
-    fprintf(ou,"%c vDi\t %lf\n",pre,vDi);
-    fprintf(ou,"%c vDi2\t %lf\n",pre,vDi2);
-    fprintf(ou,"%c focal\t %lf\n",pre,focal);
-    fprintf(ou,"%c focal2\t %lf\n",pre,focal2);
-    fprintf(ou,"%c vlambda\t %g\n",pre,vlambda);    
-    fprintf(ou,"%c cofactor\t %lf\n",pre,cofactor);
-    fprintf(ou,"%c rphase\t %lf\n",pre,rphase);
-    fprintf(ou,"%c npmax\t %d\n",pre,npmax);
+    fprintf(ou,"%c nrescale   \t %s\n",pre,nrescale?"true":"false");
+    fprintf(ou,"%c size       \t %lg\n",pre,size);
+    fprintf(ou,"%c vDi        \t %lg\n",pre,vDi);
+    fprintf(ou,"%c vDi2       \t %lg\n",pre,vDi2);
+    fprintf(ou,"%c focal      \t %lg\n",pre,focal);
+    fprintf(ou,"%c focal2     \t %lg\n",pre,focal2);
+    fprintf(ou,"%c vlambda    \t %g\n",pre,vlambda);    
+    fprintf(ou,"%c cofactor   \t %lg\n",pre,cofactor);
+    fprintf(ou,"%c rphase     \t %lg\n",pre,rphase);
+    fprintf(ou,"%c npmax      \t %d\n",pre,npmax);
     fprintf(ou,"%c speckletype\t %s\n",pre,speckletype.c_str());
-    fprintf(ou,"%c nov\t %d\n",pre,nov);
-    fprintf(ou,"%c vectors\t %s\n",pre,vectors?"true":"false");
-    fprintf(ou,"%c intensity\t %lf%+lfI\n", pre, creal(Vintensity), cimag(Vintensity));
+    fprintf(ou,"%c nov        \t %d\n",pre,nov);
+    fprintf(ou,"%c vectors    \t %s\n",pre,vectors?"true":"false");
+    fprintf(ou,"%c intensity  \t %lg%+lfI\n", pre, creal(Vintensity), cimag(Vintensity));
 
-    fprintf(ou,"%c min\t %lf\n",pre,min);
-    fprintf(ou,"%c max\t %lf\n",pre,max);
+    fprintf(ou,"%c min        \t %lg\n",pre,min);
+    fprintf(ou,"%c max        \t %lg\n",pre,max);
 
-    fprintf(ou,"%c begin\t %d\n",pre,start);
-    fprintf(ou,"%c end\t %d\n",pre,end);
+    fprintf(ou,"%c ngpu       \t %d\n",pre,ngpu);
+    fprintf(ou,"%c ncpu       \t %d\n",pre,ncpu);    
+    
+    fprintf(ou,"%c begin      \t %d\n",pre,start);
+    fprintf(ou,"%c end        \t %d\n",pre,end);
                    
-    fprintf(ou,"%c solver\t %s\n",pre,solver.c_str());
-    fprintf(ou,"%c file prefix\t %s\n",pre,fprefix.c_str());
+    fprintf(ou,"%c solver     \t %s\n",pre,solver.c_str());
+    fprintf(ou,"%c file_prefix\t %s\n",pre,fprefix.c_str());
     }
 
-void parser::use_option(int opt,const char* thearg){
+void speckle::use_option(int opt,const char* thearg){
     switch (opt){
-        case 'N':
-            Nscatterers=atoi(thearg); break;
-        case 's':
-            size=atof(thearg); break;
-        case 'v':
-            vDi=atof(thearg); break;
-        case 'V':
-            vDi2=atof(thearg); break;
-        case 'f':
-            focal=atof(thearg); break;
-        case 'F':
-            focal2=atof(thearg); break;
-        case 'l':
-            vlambda=atof(thearg); break;
-        case 'c':
-            cofactor=atof(thearg); break;
-        case 'p':
-            rphase=atof(thearg); break;
-        case 'P':
-            npmax=atoi(thearg); break;
-        case 't':
-            speckletype=thearg; break;
-        case 'n':
-            nov=atoi(thearg); break;
+        case 'N': Nscatterers=atoi(thearg); break;
+        case 's': size=atof(thearg); break;
+        case 'v': vDi=atof(thearg); break;
+        case 'V': vDi2=atof(thearg); break;
+        case 'f': focal=atof(thearg); break;
+        case 'F': focal2=atof(thearg); break;
+        case 'l': vlambda=atof(thearg); break;
+        case 'c': cofactor=atof(thearg); break;
+        case 'p': rphase=atof(thearg); break;
+        case 'P': npmax=atoi(thearg); break;
+        case 't': speckletype=thearg; break;
+        case 'n': nov=atoi(thearg); break;
+        case 'r': nrescale=true; break;
+        case 'a': vectors=true; break;      
+        case 'M': min=atof(thearg); break;
+        case 'm': max=atof(thearg); break;
+        case 'b': start=atoi(thearg); break;
+        case 'e': end=atoi(thearg); break;
+        case 'G': ngpu=atoi(thearg); break;
+        case 'C': ncpu=atoi(thearg); break;
+        case 'S': solver=thearg; break;
+        case 'o': fprefix=thearg; break;
+            
         case 'i':
             double real, imag;
             sscanf(thearg,"%lf %lf[Ii]",&real,&imag);
             Vintensity=real+imag*I;
             break;
-        case 'r':
-            nrescale=true; break;
-        case 'a':
-            vectors=true; break;      
-            
-        case 'M':
-            min=atof(thearg); break;
-        case 'm':
-            max=atof(thearg); break;
-            
-        case 'b':
-            start=atoi(thearg); break;
-        case 'e':
-            end=atoi(thearg); break;
-            
-        case 'S':
-            solver=thearg; break;
-        case 'o':
-            fprefix=thearg; break;
-        case 'h':
-            print_help();
+        case 'h': break;
         case ':':
         case '?':
             if(rank==0){

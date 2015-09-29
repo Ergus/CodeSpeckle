@@ -25,10 +25,20 @@
 #endif //MPI_VERSION
 #endif // printme
 
+#ifdef DEBUG;
+ #define STARTDBG fprintf(stderr,"Calling %s: %s:%d\n",                   \
+                         __PRETTY_FUNCTION__,__FILE__,__LINE__);
+ #define ENDDBG fprintf(stderr,"Ended %s: %s:%d\n",                       \
+                         __PRETTY_FUNCTION__,__FILE__,__LINE__);
+#else
+ #define STARTDBG
+ #define ENDDBG
+#endif
+
 #ifndef dbg
 #define dbg(x) {                                                           \
         if(x!=0){                                                          \
-            fprintf(stderr,"Error: %s returned %ld\n",#x, x);                 \
+            fprintf(stderr,"Error: %s returned %d\n",#x, x);               \
             printme();                                                     \
             return(-1);                                                    \
             }                                                              \

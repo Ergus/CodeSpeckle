@@ -36,5 +36,7 @@ Command line parameters overwrite a parameter if also specified in the command l
     Run parameters:
     -b, --begin <int>: default 1
     -e, --end <int>: no default value
-
+    -G, --gpu Number of gpus (mandatory if magma is used, default value 0)
+    -C, --cpu Number of cpus, default is the "total number of CPU"/LOCAL_SIZE
+    
 

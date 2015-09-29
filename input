@@ -4,23 +4,23 @@
 # or in any part of the text
 ###############################
 
-Nscatterers 90
-#rescale     	  #this parameter dont need arguments
-size 0.12
-vDi 0.04635245901639344262
-focal 42.0
-vlambda 810.0e-6
-vDi2 0.03635245901639344262,
-focal2 33.0
+Nscatterers 2400
+#rescale     	  #this parameter don't need arguments
+size 10.0
+vDi 1.067393002E-14
+focal 221763636363636.34
+vlambda 0.42245972727272724
+vDi2 1.067393002E-14
+focal2 221763636363636.34
 cofactor 1.0
 rphase 0.0
-npmax  10
+npmax 10
 nov 4
-speckletype single
-nov 0
+speckletype sum2
 solver mkl
-intensity 2.0+0.0I
+intensity 19.73920880230698+0I  #2*pi^2 as in code
 start 1
 end 1
+gpu 2
 
 file salida

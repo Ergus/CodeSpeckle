@@ -3,17 +3,33 @@
 
 #include "solver.h"
 #include <plasma.h>
-//#include <lapacke.h>
 
-//Here are declared both magma solvers.
-
+/***********************************************//**
+ *  \brief Usage for the class plasma_solver.
+ *
+ *  This solver is compiled only if the PLASMA enviroment variables are set.
+ *  Else all the references to it are eliminated in compile time.
+ *  As all the solvers in the code the base class for this in the solver class.
+ *  
+ *  \author Jimmy Aguilar Mena
+ *  \version 0.1
+ ************************************************/
 class plasma_solver:public solver{
     public:
+        /// Constructor for plasma_solver.
+        /** \param [in] n dimension to solve
+            \param [in] ovectors bool variable that enables eigen vector calculation.
+            \param [in] omin lower limit of interesting values
+            \param [in] omax upper limit of interesting values */
         plasma_solver(int n, bool ovectors=false,
                       double omin=0.0, double omax=0.0);
-
-        ~plasma_solver();
         
+        /// Destructor for plasma_solver
+        ~plasma_solver();
+
+        /// Funtion to calculate eigenvalues and optionaly eigenvectors
+        /** To acces the results call the general defined routines for all the solvers
+            see: #solver */
         int solve(double complex* oA);
         
     private:
