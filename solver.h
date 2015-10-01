@@ -92,7 +92,13 @@ class solver{
         /// Destructor for the solver.
         virtual ~solver(){
             if(w) free(w); w=NULL;
-            }        
+            }
+
+        void show(FILE *out=stdout){
+            for(int i=0;i<m;i++){
+                fprintf(out,"%lf\n",w[i]);
+                }
+            }
         
     protected:
         /// Virtual constructor for the solver

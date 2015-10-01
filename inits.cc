@@ -544,7 +544,7 @@ int speckle::init_shell(int idseed){
         }
 
     for(int i=0;i<Nscatterers;i++){
-        double angle = 2.0*M_PI*frand()-vmaxradscat;
+        double angle = 2.0*M_PI*frand();
         double urandom = 2.0*frand()-1.0;
         double urandom2=urandom*urandom;
         
@@ -575,9 +575,8 @@ int speckle::init_shell(int idseed){
                     double xscata=xscat[i];
                     double yscata=yscat[i];
                     double zscata=zscat[i];
-                    double arg1 =2.0*M_PI*invlambdafoc
-                        *(xcord[0]*xscata+xcord[1]
-                          *yscata+xcord[2]*zscata);
+                    double arg1 =2.0*M_PI*(xcord[0]*xscata+xcord[1]*yscata
+                                           +xcord[2]*zscata)*invlambdafoc;
                     ff3[idx]+=(alphascat[i]
                                *cexp(betascat[i]*I)
                                *cexp(arg1*I) );

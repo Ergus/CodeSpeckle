@@ -6,7 +6,7 @@
 
 Nscatterers 2400
 #rescale     	  #this parameter don't need arguments
-size 10.0
+size 11.0
 vDi 1.067393002E-14
 focal 221763636363636.34
 vlambda 0.42245972727272724
@@ -14,9 +14,9 @@ vDi2 1.067393002E-14
 focal2 221763636363636.34
 cofactor 1.0
 rphase 0.0
-npmax 10
+npmax 18
 nov 4
-speckletype sum2
+speckletype shell
 solver mkl
 intensity 19.73920880230698+0I  #2*pi^2 as in code
 start 1

@@ -124,7 +124,9 @@ int speckle::ftspeckle(){
     
     MKL_LONG status;
     MKL_LONG N[]={ npx, npx, npx};
-    MKL_LONG rstrides[]={ 0,     npx2,  npx, 1};
+    //MKL_LONG rstrides[]={ 0,     npx2,  npx, 1};
+    //MKL_LONG cstrides[]={ 0, npx*padx, padx, 1};
+    MKL_LONG rstrides[]={ 0,      npx, npx2, 1};
     MKL_LONG cstrides[]={ 0, npx*padx, padx, 1};
 
     //This 2 arrays will have dimension 3
@@ -147,7 +149,7 @@ int speckle::ftspeckle(){
             }
         }
 
-	DFTI_DESCRIPTOR_HANDLE hand=0;
+    DFTI_DESCRIPTOR_HANDLE hand=0;
     double scaleforward=1.0/(npx*npx2),
            scalebackward=1.0;
     
@@ -188,7 +190,7 @@ int speckle::ftspeckle(){
     for(int i=0;i<npx;i++){
         for(int j=0;j<npx;j++){
             for(int k=0;k<npx;k++){
-                count+=(fabs(x_real[i*npx2+j*npx+k]-VP[i*npu2+j*npu+k])>0.01);
+                count+=(fabs(x_real[i*npx2+j*npx+k]-VP[i*npu2+j*npu+k])>0.01 ? 1 : 0);
                 }
             }
         }
@@ -197,14 +199,19 @@ int speckle::ftspeckle(){
         fprintf(stderr,"WARNING!!!======\n");
         fprintf(stderr,"Elements with an error > 0.01: %d\n",count);
         }
-    
+
+
+    //    show(x_cmplx,);
     //This is completly modified way to do this because no mod or extra if are needed
-    for(int i=0, ni=npx; i<npx; i++, ni--){
-        for(int j=0, nj=npx; j<npx; j++, nj--){
+    for(int i=0; i<npx; i++){
+        int ni=(npx-i)%npx;
+        for(int j=0; j<npx; j++){
+            int nj=(npx-j)%npx;
             for(int k=0;k<padx;k++){ //same vales than padded
-                Vk[i*npx2+j*npx+k]=Vintensity*x_cmplx[i*npx2+j*npx+k];
+                Vk[i*npx2+j*npx+k]=Vintensity*x_cmplx[i*npx*padx+j*padx+k];
                 }
-            for(int k=padx, nk=npx-padx; k<npx; k++, nk--){
+            for(int k=padx; k<npx; k++){
+                int nk=(npx-k)%npx;
                 Vk[i*npx2+j*npx+k]=Vintensity*conj(x_cmplx[ni*npx*padx+nj*padx+nk]);
                 }
             }
@@ -226,9 +233,11 @@ int speckle::defineA(){
     f18=fopen(outputname, "a");
     fprintf(f18,"# The dimension of the matrix is %d\n", Ntot);
     
-    int* vkx=(int*) malloc(Ntot*sizeof(double)),
-       * vky=(int*) malloc(Ntot*sizeof(double)),
-       * vkz=(int*) malloc(Ntot*sizeof(double));
+    int* vkx=(int*) malloc(Ntot*sizeof(int)),
+       * vky=(int*) malloc(Ntot*sizeof(int)),
+       * vkz=(int*) malloc(Ntot*sizeof(int));
+    //If error in this line check the 3 lines before
+    dbg_mem(vkx); dbg_mem(vky); dbg_mem(vkz); 
 
     double* diagTk=(double*) malloc(Ntot*sizeof(double)); dbg_mem(diagTk);
     
@@ -238,25 +247,33 @@ int speckle::defineA(){
     fprintf(f18,"# The dimension of the matrix is %d\n", Ntot);
 
     //----------Here we define the matrix A-----------------
-    //vectors of the k-components and of the kinetic energy (in units of deltaT=hbar^2*unitk^2/2m)    
-    for(int nkx=0,kx=-npmax/2,ntk=0 ;nkx<npmax; nkx++,kx++){  //ntk is declared here
-        for(int nky=0,ky=-npmax/2 ;nky<npmax; nky++,ky++){
-            for(int nkz=0,kz=-npmax/2; nkz<npmax; nkz++,kz++,ntk++){ //but increment here
+    //vectors of the k-components and of the kinetic energy (in units of deltaT=hbar^2*unitk^2/2m)
+    int ntk=0;
+    int kz=-npmax/2;
+    for(int nkz=0;nkz<npmax;nkz++){
+        int ky=-npmax/2;
+        for(int nky=0;nky<npmax; nky++){
+            int kx=-npmax/2;
+            for(int nkx=0 ;nkx<npmax; nkx++){
                 diagTk[ntk]=kx*kx+ky*ky+kz*kz;
                 vkx[ntk]=kx;
                 vky[ntk]=ky;
                 vkz[ntk]=kz;
+                ntk++;
+                kx++;
                 }
+            ky++;
             }
+        kz++;
         }
-
+        
     //This loop is transversed access, but this is the way
     //it is made in the original code.
     //This can be made much more efficiently in the previous loop, but
     //maybe this way is usefull or readable.
     fprintf(f18,"# Definition of A\n");    
     for(int i=0;i<Ntot;i++){
-        for(int j=i+i;j<Ntot;j++){
+        for(int j=i+1;j<Ntot;j++){
             int kdiffx=(vkx[j]-vkx[i]+npmax)%npmax;
             int kdiffy=(vky[j]-vky[i]+npmax)%npmax;
             int kdiffz=(vkz[j]-vkz[i]+npmax)%npmax;
@@ -281,10 +298,12 @@ int speckle::defineA(){
 
 int speckle::process(int nvalues, double*array){
     STARTDBG
-    if(!thehist) thehist=new histogram(this, 0.5); dbg_mem(thehist);
-    dbg(thehist->process(nvalues,array));
+        //    if(!thehist) thehist=new histogram(this, 0.5); dbg_mem(thehist);
+        //dbg(thehist->process(nvalues,array));
+        //for(int i=0;i<nvalues;i++){
+        //    printf("%lf\n",array[i]);
+        //    }
     ENDDBG
     return 0;
     }
-
 
