@@ -1,5 +1,5 @@
 #include "specklemod.h"
-#include "parallel.h"
+#include "slaves.h"
 
 int main(int argc, char **argv){
     printf("Test speckle\n");

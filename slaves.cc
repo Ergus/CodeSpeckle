@@ -1,4 +1,4 @@
-#include "parallel.h"
+#include "slaves.h"
 
 slaves::slaves(int argc, char** argv):
     speckle(argc, argv),
@@ -7,13 +7,12 @@ slaves::slaves(int argc, char** argv):
 {
     STARTDBG
     #ifdef UMPI
-    MPI_Init (&thepar->argc, &thepar->argv);
-    MPI_Comm_size( MPI_COMM_WORLD, &size ); 
+    MPI_Init (&argc, &argv);
+    MPI_Comm_size( MPI_COMM_WORLD, &wsize ); 
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
-    MPI_T=internal::mpi_type_id(&T);
     #endif
     if(rank==0){
-        seeds=new int[wsize];
+        seeds=new int[wsize]();
         if(!seeds){
             fprintf(stderr,"Error: mutex or seeds arrays allocation failed\n");
             printme();
@@ -22,6 +21,7 @@ slaves::slaves(int argc, char** argv):
         pthread_mutex_init(&mutex1, NULL);
         pthread_mutex_init(&mutex2, NULL);
         }
+    
     ENDDBG
     }
 
@@ -36,7 +36,7 @@ void slaves::run(){
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
         // The function "Manager" sends the initial seeds                    
         pthread_create(&thread, &attr,
-                       slaves::master_static, (void *)&this); 
+                       slaves::master_static, (void *)this);
         }
     else{
         MPI_Recv(&value_get, 1, MPI_INT, 0, seedtag, MPI_COMM_WORLD, &status2);
@@ -46,7 +46,6 @@ void slaves::run(){
         //Now start making calculations and check that no errors ocurred
         info=calculate(value_get);
         int rec=(info==-1?-1:indices);
-                
         if(rank==0) {
             value_get=getseed(0,rec);
             #ifdef UMPI
@@ -64,46 +63,46 @@ void slaves::run(){
             else{
                 MPI_Send(values, rec, MPI_DOUBLE, 0, valuestag, MPI_COMM_WORLD);
                 }
-            #endif // UMPI                    
+            #endif // UMPI
             }
         }
     #ifdef UMPI
-    if(rank==0) pthread_join(thread, NULL);
+    if(rank==0){
+        pthread_join(thread, NULL);
+        }
     #endif // UMPI
     ENDDBG
     }
 
 #ifdef UMPI
-int master(){
+int slaves::master(){
     STARTDBG
     int rec=0;               // received value
     double *tmp_buffer;      // temporal buffer
     int source;              // sender process            
-    MPI_Status status;
 
-    for(int i=1;i<size;i++){
-        MPI_Send(getseed(i,rec), 1, MPI_INT, i, seedtag, MPI_COMM_WORLD);
+    for(int i=1;i<wsize;i++){
+        int tmp=getseed(i,rec);
+        MPI_Send(&tmp, 1, MPI_INT, i, seedtag, MPI_COMM_WORLD);
         }
 
     while(cont>0){
-        MPI_Recv(rec, NGROUPS,MPI_INT, MPI_ANY_SOURCE,
+        MPI_Recv(&rec, 1,MPI_INT, MPI_ANY_SOURCE,
                  resultag, MPI_COMM_WORLD, &status);
-                
         source=status.MPI_SOURCE;
-        seed=getseed(source,rec);
+        int seed=getseed(source,rec);
         // Send the new seed if no error, or -1 as confirmation
         MPI_Send(&seed, 1, MPI_INT, source, seedtag, MPI_COMM_WORLD);
         if(rec>0){
-            tmp_buffer=(double*) malloc(rec*sizeof(T));
+            tmp_buffer=(double*) malloc(rec*sizeof(double));
             MPI_Recv(tmp_buffer, rec, MPI_DOUBLE, source,
                      valuestag, MPI_COMM_WORLD, &status);
-                    
             process(rec,tmp_buffer);
             free(tmp_buffer);
             }
-        }
-    else{
-        printf("Thread_Warning: Got %d from process %d\n",rec,source);
+        else{
+            printf("Thread_Warning: Got %d from process %d\n",rec,source);
+            }
         }
     ENDDBG
     return 0;

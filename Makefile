@@ -11,11 +11,30 @@ CXXFLAGS = -O2
 
 # Here start the rules.
 FILE = main.x
-LIBS = auxiliary.o histogram.o specklemod.o inits.o parser.o parallel.o
+LIBS = auxiliary.o histogram.o specklemod.o inits.o parser.o slaves.o
+
+MPI_RESULT := $(shell which mpicxx 2> /dev/null)
+MPI_TEST := $(notdir $(MPI_RESULT))
+ifeq ($(MPI_TEST),mpicxx)
+ $(info MPI compiler found)
+ MPICXX=mpicxx
+ MPIFLAGS = -DUMPI
+else
+ $(warning MPI compiler not found)
+endif
+
+MPI_RESULT := $(shell which mpicxx 2> /dev/null)
+MPI_TEST := $(notdir $(MPI_RESULT))
+ifeq ($(MPI_TEST),mpicxx)
+ $(info MPI compiler found)
+ MPICXX=mpicxx
+ MPIFLAGS = -DUMPI
+else
+ $(warning MPI compiler not found)
+endif
 
 ##-----------------------------------------------
 # Check libraries mkl (mandatory), plasma and magma
-
 
 ifdef MKLROOT
 # Flags for MKL
@@ -63,7 +82,14 @@ all: $(FILE)
 debug: CXXFLAGS = -O0 -DDEBUG -g -Wall -DUNIX $(MACROS)
 debug: $(FILE)
 
-%.x: %.cc $(LIBS)
+debug_mpi: CXXFLAGS = -O0 -DDEBUG -g -Wall -DUNIX $(MACROS)
+debug_mpi: mpi
+
+mpi: CXX = $(MPICXX)
+mpi: CXXFLAGS += $(MPIFLAGS)
+mpi: $(FILE)
+
+main.x: main.cc $(LIBS)
 	$(CXX) $(CXXFLAGS) $(FLAGS) $^ -o $@ $(MAGMALIBS) $(PLASMALIBS)
 
 plasma_solver.o: plasma_solver.cc
@@ -93,14 +119,5 @@ clean:
 test: $(FILE)
 	./$(FILE) input
 
-load-mpi:
-	@echo "Lookimg for MPI Compiler"
-	MPI_RESULT := $(shell which mpicxx 2> /dev/null)
-	MPI_TEST := $(notdir $(MPI_RESULT))
-	ifeq ($(MPI_TEST),mpicxx)
-	  CXX=mpicxx
-	else
-	  $(error MPI compiler not found)
-	endif
 
 

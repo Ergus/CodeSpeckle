@@ -17,6 +17,7 @@
 #include "specklemod.h"
 
 // to reuse this code compile with and without -DUMPI.
+// De default makefile will do it for you
 
 using namespace std;
 
@@ -47,7 +48,7 @@ class slaves: public speckle{
             #ifdef UMPI
             MPI_Finalize();
             #endif
-            
+            ENDDBG
             }
 
         /// Run routine, is the manager for all the system
@@ -63,6 +64,7 @@ class slaves: public speckle{
             pthread_mutex_lock(&mutex2);        // mutex for threads save
             speckle::process(nvalues,array);
             pthread_mutex_unlock(&mutex2);      // mutex for threads save
+            ENDDBG
             return 0;
             }
 
@@ -114,7 +116,7 @@ class slaves: public speckle{
         #ifdef UMPI                    
         pthread_t thread;             // thread will be loaded in the paralell version
         pthread_attr_t attr;          // Attribute for thread
-        MPI_Datatype MPI_T;           // Datatype templatized in constructor
+        MPI_Status status, status2;
         #endif
 
         //static members 

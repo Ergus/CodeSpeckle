@@ -284,11 +284,11 @@ int speckle::defineA(){
         A[i*Ntot+i]=Vk[0]+(deltaT*diagTk[i]);
         }
     
-    free(diagTk);
-    free(vkx);
+    free(diagTk); 
+    free(vkx); 
     free(vky);
     free(vkz);
-    free(Vk); //Vk is not used anymore and we need memory to diagonalization
+    free(Vk); Vk=NULL;//Vk is not used anymore and we need memory to diagonalization
     fprintf(f18,"# Matrix A Defined correctly\n");
     fclose(f18);
     ENDDBG

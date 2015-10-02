@@ -4,6 +4,7 @@
 #include <math.h>
 #include <stdio.h>      
 #include <stdlib.h>     // exit, EXIT_FAILURE
+#include <stdarg.h>     // argument list dbg_printf
 
 #define frand()((double)rand()/(RAND_MAX)) //random number generator in (0,1)
 
@@ -55,10 +56,18 @@
         }
 #endif  //dbg_mem
 
+/// A printf implementation that only prints in debug mode.
+/** The arguments are the same than printf, but no information 
+will be printed in starndard outpur if the DEBUG macro is not 
+defined at compile time*/
+void dbg_printf(const char * format, ... );
+
+/// Polinomial interpolation 1 dimension.
 void polint(double* xa, double* ya,
             int n, double x,
             double &y, double &dy);
 
+/// Polinomial interpolation in 3 dimensions
 void polin3(double *x1a,double *x2a,double *x3a,double *ya,
             int l,int m,int n,
             double x1,double x2,double x3,

@@ -83,57 +83,21 @@ class speckle: public  base_calculator{
             \return The return value should be 0, else an error ocurred.*/
         int calculate(int idseed){
             STARTDBG
-                dbg(init(idseed));
-            #ifdef DEBUG
-            fprintf(stdout,"VP-------------\n");
-            show(VP,this->npxpu);
-            #endif                        
+            dbg(init(idseed));
             dbg(ftspeckle());
-            #ifdef DEBUG
-            fprintf(stdout,"Vk-------------\n");
-            show(Vk,this->npmax);
-            #endif
             fprintf(stdout,"A-------------\n");            
             dbg(defineA());
-            #ifdef DEBUG
-            show(A,Ntot);
-            #endif            
             dbg(thesolver->solve(A));
-            #ifdef DEBUG
-            thesolver->show();
-            #endif
             indices=thesolver->get_m();
             values=thesolver->get_w();
             ENDDBG
-                return 0;
+            return 0;
             }        
 
         /// Print the values that will be used in this speckle.
         /** \param [in,out] ou to print, default standard output
             \param [in] pre char to put before every line, default '#'*/
         void print(FILE* ou=stdout,char pre='#');
-
-        void show(double *array, int Ntot,FILE* out=stdout){
-            fprintf(out,"-------------------------------\n");                        
-            for(int i=0;i<10;i++){
-                for(int j=0;j<10;j++){
-                    fprintf(stdout,"%lf ",array[i*Ntot+j]);
-                    }
-                fprintf(out,"\n");
-                }
-            fprintf(out,"-------------------------------\n");            
-            }
-
-        void show(double complex *array, int Ntot,FILE* out=stdout){
-            fprintf(out,"-------------------------------\n");                        
-            for(int i=0;i<10;i++){
-                for(int j=0;j<10;j++){
-                    fprintf(stdout,"%lf+%lfI ",creal(array[i*Ntot+j]),cimag(array[i*Ntot+j]));
-                    }
-                fprintf(out,"\n");
-                }
-            fprintf(out,"-------------------------------\n");            
-            }
 
         /// Process function, this needs to be defined is mandatory
         virtual int process(int nvalues, double* array);
