@@ -17,7 +17,7 @@ rphase 0.0
 npmax 18
 nov 4
 speckletype shell
-solver plasma
+solver magma
 intensity 19.73920880230698+0I  #2*pi^2 as in code
 start 1
 end 4

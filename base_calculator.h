@@ -76,7 +76,7 @@ class base_calculator{
 
         /// Process function for results.
         /** \param [in] nvalues Interger number (size) of results in this group.
-            \param [in] values Array with results.
+            \param [in] ovalues Array with results.
             \return The return value should be 0, else an error ocurred
            
             This is a base class method, but it really calls methods defined in the 
@@ -109,7 +109,6 @@ class base_calculator{
         string hostname;          ///< Name of the host (current node)
         int indices;              ///< Number of elements
         double *values;           ///< Array with the results
-
     };
 
 #endif // BASE_CALCULATOR_H

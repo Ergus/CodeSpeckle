@@ -161,13 +161,10 @@ int speckle::ftspeckle(){
 
     fprintf(f18,"# Set CCE storage\n");
     dbg(DftiSetValue(hand, DFTI_CONJUGATE_EVEN_STORAGE, DFTI_COMPLEX_COMPLEX));
-
     dbg(DftiSetValue(hand, DFTI_FORWARD_SCALE, scaleforward));
-
     dbg(DftiSetValue(hand, DFTI_INPUT_STRIDES, rstrides));
-
     dbg(DftiSetValue(hand, DFTI_OUTPUT_STRIDES, cstrides));
- 
+
     fprintf(f18,"# Commit DFTI descriptor\n");
     dbg(DftiCommitDescriptor(hand));
 
@@ -176,13 +173,9 @@ int speckle::ftspeckle(){
                    
     fprintf(f18,"# Reconfigure DFTI descript for back transform\n");
     dbg(DftiSetValue(hand, DFTI_INPUT_STRIDES, cstrides));
-
     dbg(DftiSetValue(hand, DFTI_OUTPUT_STRIDES, rstrides));
-
     dbg(DftiSetValue(hand,DFTI_BACKWARD_SCALE, scalebackward));
-
     dbg(DftiCommitDescriptor(hand));
-
     dbg(DftiComputeBackward(hand, x_cmplx, x_real));
 
     fprintf(f18,"# Verify the result after a forward and backward Fourier Transforms\n");
@@ -298,11 +291,9 @@ int speckle::defineA(){
 
 int speckle::process(int nvalues, double*array){
     STARTDBG
-        //    if(!thehist) thehist=new histogram(this, 0.5); dbg_mem(thehist);
-        //dbg(thehist->process(nvalues,array));
-        //for(int i=0;i<nvalues;i++){
-        //    printf("%lf\n",array[i]);
-        //    }
+    if(!thehist)
+        thehist=new histogram(this, 0.5); dbg_mem(thehist);
+    dbg(thehist->process(nvalues,array));
     ENDDBG
     return 0;
     }

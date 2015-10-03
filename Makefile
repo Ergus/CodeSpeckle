@@ -111,10 +111,13 @@ specklemod.o: specklemod.cc
 	$(CXX) $(CXXFLAGS) $(FLAGS) -c $^ -o $@
 
 # Extra rules
-.PHONY: clean test load-mpi check-libs check-mkl check-plasma check-magma
+.PHONY: clean test cleares
 
 clean:
 	rm -rf *.o *.x
+
+cleanres:
+	rm -rf *.out *.log main.x.*,cn*.btr
 
 test: $(FILE)
 	./$(FILE) input

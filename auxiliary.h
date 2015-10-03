@@ -5,6 +5,7 @@
 #include <stdio.h>      
 #include <stdlib.h>     // exit, EXIT_FAILURE
 #include <stdarg.h>     // argument list dbg_printf
+#include <time.h>
 
 #define frand()((double)rand()/(RAND_MAX)) //random number generator in (0,1)
 

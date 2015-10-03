@@ -94,6 +94,8 @@ class solver{
             if(w) free(w); w=NULL;
             }
 
+        /// Function to print the eigenvalues to a file
+        /** \param [in] out Output stream, default is stdout.*/
         void show(FILE *out=stdout){
             for(int i=0;i<m;i++){
                 fprintf(out,"%lf\n",w[i]);

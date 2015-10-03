@@ -3,7 +3,10 @@
 slaves::slaves(int argc, char** argv):
     speckle(argc, argv),
     cont(0),
-    seeds(NULL)
+    seeds(NULL),
+    seeds_processed(NULL),
+    total_processed(0),
+    logfile(NULL)
 {
     STARTDBG
     #ifdef UMPI
@@ -13,15 +16,25 @@ slaves::slaves(int argc, char** argv):
     #endif
     if(rank==0){
         seeds=new int[wsize]();
+        seeds_processed=new int[wsize]();
         if(!seeds){
-            fprintf(stderr,"Error: mutex or seeds arrays allocation failed\n");
+            fprintf(stderr,"Error: seeds arrays allocation failed\n");
             printme();
             exit(EXIT_FAILURE);
             }
         pthread_mutex_init(&mutex1, NULL);
         pthread_mutex_init(&mutex2, NULL);
-        }
+        pthread_mutex_init(&mutex3, NULL);
+        //start logfile and time checking
+        char timestr[80];
+        time (&rawtime);
+        timeinfo = localtime (&rawtime);
+        strftime(timestr,80,"%a_%F_%X",timeinfo);
     
+        string filename="logfile_"+speckletype+"_"+timestr+".log";
+        logfile= fopen(filename.c_str(), "w");
+        log_printf("Logfile for %s version of speckle code\n",VERSION);
+        }
     ENDDBG
     }
 
@@ -37,6 +50,7 @@ void slaves::run(){
         // The function "Manager" sends the initial seeds                    
         pthread_create(&thread, &attr,
                        slaves::master_static, (void *)this);
+        log_printf("Master thread created\n");
         }
     else{
         MPI_Recv(&value_get, 1, MPI_INT, 0, seedtag, MPI_COMM_WORLD, &status2);
@@ -69,6 +83,7 @@ void slaves::run(){
     #ifdef UMPI
     if(rank==0){
         pthread_join(thread, NULL);
+        log_printf("pthread_join out\n");        
         }
     #endif // UMPI
     ENDDBG
@@ -86,6 +101,8 @@ int slaves::master(){
         MPI_Send(&tmp, 1, MPI_INT, i, seedtag, MPI_COMM_WORLD);
         }
 
+    log_printf("Remote processes %d\n",cont);
+    
     while(cont>0){
         MPI_Recv(&rec, 1,MPI_INT, MPI_ANY_SOURCE,
                  resultag, MPI_COMM_WORLD, &status);
@@ -103,7 +120,9 @@ int slaves::master(){
         else{
             printf("Thread_Warning: Got %d from process %d\n",rec,source);
             }
+        log_printf("Processed %d results from process %d\n",rec,source);
         }
+    log_printf("Finish thread\n");
     ENDDBG
     return 0;
     }

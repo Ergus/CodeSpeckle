@@ -85,7 +85,6 @@ class speckle: public  base_calculator{
             STARTDBG
             dbg(init(idseed));
             dbg(ftspeckle());
-            fprintf(stdout,"A-------------\n");            
             dbg(defineA());
             dbg(thesolver->solve(A));
             indices=thesolver->get_m();
@@ -175,9 +174,11 @@ class speckle: public  base_calculator{
         string speckletype,           ///< Speckle type name.
             solver,                   ///< Solver name
             fprefix;                  ///< Prefix for output, if "null" no output.
-
+    private:
+        
         double complex Vintensity;    ///< Intensity value. Variable for fftspeckle.
         double complex *A;            ///< This will have dimension 2, matrix for solver
+
         friend class histogram;
         void use_option(int opt,const char* thearg);
 

@@ -110,3 +110,20 @@ void dbg_printf(const char * format, ... ){
     va_end(args);
     #endif
     }
+
+
+void log_printf(const char * format, ... ){
+    time_t rawtime;
+    struct tm * timeinfo;
+    char buffer [80];
+    
+    time (&rawtime);
+    timeinfo = localtime (&rawtime);
+    strftime(buffer,80,"%a_%F_%X",timeinfo);
+    
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    }
+

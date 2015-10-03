@@ -26,20 +26,21 @@ class speckle;
 class histogram{
     public:
         /// Histogram constructor
-        /** \param [in] out is the outer speckle class. 
+        /** \param [in] outter is the outer speckle class. 
             The constructor allocates all the internal arrays and open the
-            output file. */
+            output file. 
+            \param [in] odeltaE bin size for the histogram*/
+
         histogram(speckle* outter, double odeltaE);
 
         /// Histogram class destructor
         /** Frees the memory and close the files. */
         ~histogram(){
             free(nos);
+            free(countr);            
             free(dos);
             free(sumr);
-            free(countr);
             free(meanr);
-            free(diffeigen);
                     
             fclose(f10);
             }
