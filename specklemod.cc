@@ -29,6 +29,7 @@ speckle::speckle(int argc, char **argv):
     // bools
     nrescale(false),    	   // shift and rescale sum2 speckle
     vectors(false),
+    usegnuplot(false),
     //run needed
     fprefix("NULL"),
     largc(argc), largv(argv),

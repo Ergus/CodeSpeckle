@@ -176,9 +176,15 @@ class speckle: public  base_calculator{
             vDi, focal, vlambda,
             vDi2, focal2, cofactor, rphase,
             binsize;                  ///< SIze for the bin in the histogram
-
+        
+        /** \name Bool flags
+            All are false by default, so should be activated manually.*/
+        ///\{
         bool nrescale,                ///< Choice of shift and rescale for sum2
-            vectors;                  ///< Option to calculate vector or not
+            vectors,                  ///< Option to calculate vector or not
+            usegnuplot;               ///< Activates the gnuplot dynamic graphs.
+        ///\}
+
         double complex *Vk;
 
         int largc;                    ///< Standard input counter

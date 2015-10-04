@@ -45,6 +45,7 @@ class histogram{
             free(meanr);
                     
             fclose(f10);
+            if(gnuplot) pclose(gnuplot);
             }
 
         /// Process routine for colect data in the histograms
@@ -93,8 +94,10 @@ class histogram{
         int nrealiz;
         double *dos, *sumr, *meanr, *diffeigen;
         int *nos, *countr;
-        FILE* f10;     // dos.dat
+        FILE* f10,         // values.dat
+            * gnuplot;
         speckle *caller;
+        string filename;
     };
 
 #endif

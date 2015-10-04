@@ -3,7 +3,7 @@
 histogram::histogram(speckle *outter):
     deltaE(outter->binsize),nrealiz(0),
     nos(NULL),countr(NULL),dos(NULL),sumr(NULL),meanr(NULL),
-    caller(outter)
+    caller(outter),gnuplot(NULL),filename("")
 {
     STARTDBG
     const double tmp =2.0*M_PI/outter->size;
@@ -19,22 +19,36 @@ histogram::histogram(speckle *outter):
     sumr=(double*) calloc(ndeltaE,sizeof(double));
     meanr=(double*) calloc(ndeltaE,sizeof(double));
 
-    if (!(nos && countr && dos && sumr && meanr)){
-            fprintf(stderr,"Error: allocating memory for histogram\n");
+    // this is to define the new output only, this can change easily
+    if(caller->fprefix!="NULL") filename=caller->fprefix+"_";
+    
+    filename+=(caller->speckletype+"_"+caller->timestr+"_values.dat");
+    
+    f10=fopen(filename.c_str(),"w");       // values.dat    
+
+    // Check all the pointers are fine
+    if (!(nos && countr && dos && sumr && meanr && f10)){
+            fprintf(stderr,"Error: allocating memory or opening file for histogram\n");
             printme();
             exit(EXIT_FAILURE);
             }
+    
+    // Continue previous calculations if indicated
     if (caller->continuefile!=""){
         load_previous(caller->continuefile.c_str());
         }
-    // this is to define the filename only, this can change easily
-    string filename="";
-    if(caller->fprefix!="NULL"){
-        filename=caller->fprefix+"_";
+    if (caller->usegnuplot){
+        if(caller->wsize==1){
+            gnuplot=popen("gnuplot -persistent", "w");
+            if (!gnuplot){
+                fprintf(stderr,"Gnuplot option active, but pipe couldn't be open\n");
+                }
+            }
+        else{
+            fprintf(stderr,"Use gnuplot option only in serial code\n");
+            }
         }
-    filename+=(caller->speckletype+"_"+caller->timestr+"_values.dat");
     
-    f10=fopen(filename.c_str(),"w");       // dos.dat
     ENDDBG
     }
 
@@ -81,6 +95,11 @@ int histogram::process(const int np,const double *values){
         }
                     
     fflush(f10);
+    if (gnuplot){
+        printf("plotting process %d\n",caller->rank);
+        fprintf(gnuplot,"plot \"%s\" u 2:5\n",filename.c_str());
+        fflush(gnuplot);
+        }
     ENDDBG
     return 0;
     }

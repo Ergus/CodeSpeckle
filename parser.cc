@@ -28,7 +28,8 @@ int speckle::parse(){
     {"cpu", required_argument, 0, 'C'},      //ncpu
     {"restart",required_argument, 0, 'R'},   //continue previous calculations
     {"binsize",required_argument, 0, 'B'},   //histogram binsize
-
+    
+    {"gnuplot", no_argument, 0, 'g'},
     {"rescale", no_argument, 0, 'r'},
     {"vectors", no_argument, 0, 'a'},        
     {"help", no_argument, 0, 'h'},
@@ -42,7 +43,7 @@ int speckle::parse(){
     int c, option_index = 0, i=0, linenum=0;
     optind=1;    //this is a global variable reseted to restart reading the argumemts; 
 
-    const char optstring[]="N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:C:G:R:B:rah";
+    const char optstring[]="N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:C:G:R:B:grah";
     
     // read all the options
     while((c=getopt_long(largc, largv, optstring,
@@ -122,6 +123,7 @@ int speckle::parse(){
 void speckle::print(FILE* ou,char pre){
     fprintf(ou,"%c Nscatterers\t %d\n",pre,Nscatterers);
     fprintf(ou,"%c nrescale   \t %s\n",pre,nrescale?"true":"false");
+    fprintf(ou,"%c gnuplot    \t %s\n",pre,usegnuplot?"true":"false");
     fprintf(ou,"%c size       \t %lg\n",pre,size);
     fprintf(ou,"%c vDi        \t %lg\n",pre,vDi);
     fprintf(ou,"%c vDi2       \t %lg\n",pre,vDi2);
@@ -138,6 +140,7 @@ void speckle::print(FILE* ou,char pre){
 
     fprintf(ou,"%c min        \t %lg\n",pre,min);
     fprintf(ou,"%c max        \t %lg\n",pre,max);
+    fprintf(ou,"%c binsize    \t %lg\n",pre,binsize);
 
     fprintf(ou,"%c ngpu       \t %d\n",pre,ngpu);
     fprintf(ou,"%c ncpu       \t %d\n",pre,ncpu);    
@@ -147,6 +150,9 @@ void speckle::print(FILE* ou,char pre){
                    
     fprintf(ou,"%c solver     \t %s\n",pre,solver.c_str());
     fprintf(ou,"%c file_prefix\t %s\n",pre,fprefix.c_str());
+    if(continuefile!=""){
+        fprintf(ou,"%c continues  \t %s\n",pre,continuefile.c_str());
+        }
     }
 
 void speckle::use_option(int opt,const char* thearg){
@@ -164,7 +170,8 @@ void speckle::use_option(int opt,const char* thearg){
         case 't': speckletype=thearg; break;
         case 'n': nov=atoi(thearg); break;
         case 'r': nrescale=true; break;
-        case 'a': vectors=true; break;      
+        case 'a': vectors=true; break;
+        case 'g': usegnuplot=true; break;
         case 'M': min=atof(thearg); break;
         case 'm': max=atof(thearg); break;
         case 'b': start=atoi(thearg); break;
