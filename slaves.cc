@@ -26,11 +26,7 @@ slaves::slaves(int argc, char** argv):
         pthread_mutex_init(&mutex2, NULL);
         pthread_mutex_init(&mutex3, NULL);
         //start logfile and time checking
-        char timestr[80];
-        time (&rawtime);
-        timeinfo = localtime (&rawtime);
-        strftime(timestr,80,"%a_%F_%X",timeinfo);
-    
+     
         string filename="logfile_"+speckletype+"_"+timestr+".log";
         logfile= fopen(filename.c_str(), "w");
         log_printf("Logfile for %s version of speckle code\n",VERSION);

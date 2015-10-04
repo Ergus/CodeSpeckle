@@ -3,11 +3,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <signal.h>
-#include <string>
-#include <time.h>
+#include <pthread.h>   // obvious
+#include <signal.h>    // for threads mutex
 
 #ifdef UMPI
 #include <mpi.h>
@@ -175,8 +172,6 @@ class slaves: public speckle{
             mutex3;
 
         FILE *logfile;
-        time_t rawtime;
-        struct tm * timeinfo;
         
     };
 

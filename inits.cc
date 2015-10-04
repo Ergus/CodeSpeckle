@@ -106,12 +106,12 @@ int speckle::init_spherical(int idseed){
         }
 
     stdev=sqrt(stdev*adpp-1.0);
-    fprintf(f18,"# speckle st. dev.=%lf\n",stdev);
+    f18_printf("# speckle st. dev.=%lf\n",stdev);
     
     const double factor=1.0-1.0/stdev;
     for(int i=0;i<ngridvI;i++){
         double vaux=(nrescale?(double(i)+0.5)*dvI/stdev+factor:((double)i+0.5)*dvI);
-        fprintf(f18,"%d %lf %lf\n",i,vaux,pvI[i]/dvI);
+        f18_printf("%d %lf %lf\n",i,vaux,pvI[i]/dvI);
         }
 
     //Fill end points (periodicity) in all the axis.
@@ -140,7 +140,7 @@ int speckle::init_spherical(int idseed){
     
     free(ff3);
     free(pvI);
-    fprintf(f18,"# Speckle created\n");
+    f18_printf("# Speckle created\n");
     return 0;
     }
 
@@ -293,7 +293,7 @@ int speckle::init_sum2(int idseed){
     stdev=sqrt(stdev*adpp-1.0);
     const double factor=1.0-1.0/stdev;
     
-    fprintf(f18, "# speckle st. dev.=%lf\n",stdev);
+    f18_printf( "# speckle st. dev.=%lf\n",stdev);
     
     if(nrescale){
         //This moves also the unasigned values, but don't really matter
@@ -304,7 +304,7 @@ int speckle::init_sum2(int idseed){
     
     for(int i=0;i<ngridvI;i++){
         double vaux=(nrescale?(double(i)+0.5)*dvI/stdev+factor:((double)i+0.5)*dvI);
-        fprintf(f18,"%d %lf %lf\n",i,vaux,pvI[i]/dvI);
+        f18_printf("%d %lf %lf\n",i,vaux,pvI[i]/dvI);
         }
 
     //Fill end points (periodicity) in all the axis.
@@ -337,7 +337,7 @@ int speckle::init_sum2(int idseed){
 
     free(ff3);
     free(pvI);
-    fprintf(f18,"# Speckle created\n");
+    f18_printf("# Speckle created\n");
     return 0;
     }
 
@@ -457,12 +457,12 @@ int speckle::init_single(int idseed){
     
     stdev=sqrt(stdev*adpp-1.0);
 
-    fprintf(f18,"# speckle st. dev.=%lf\n",stdev);
+    f18_printf("# speckle st. dev.=%lf\n",stdev);
     
     const double factor=1.0-1.0/stdev;
     for(int i=0;i<ngridvI;i++){
         double vaux=(nrescale?(double(i)+0.5)*dvI/stdev+factor:((double)i+0.5)*dvI);
-        fprintf(f18,"%d %lf %lf\n",i,vaux,pvI[i]/dvI);
+        f18_printf("%d %lf %lf\n",i,vaux,pvI[i]/dvI);
         }
 
     //Fill end points (periodicity) in all the axis.
@@ -488,7 +488,7 @@ int speckle::init_single(int idseed){
     free(betascat);
     free(ff3);
     free(pvI);
-    fprintf(f18,"# Speckle created\n");
+    f18_printf("# Speckle created\n");
     return 0;
     }
 
@@ -606,12 +606,12 @@ int speckle::init_shell(int idseed){
         }
         
     stdev=sqrt(stdev*adpp-1.0);
-    fprintf(f18,"# speckle st. dev.=%lf\n",stdev);
+    f18_printf("# speckle st. dev.=%lf\n",stdev);
     
     const double factor=1.0-1.0/stdev;
     for(int i=0;i<ngridvI;i++){
         double vaux=(nrescale?(double(i)+0.5)*dvI/stdev+factor:((double)i+0.5)*dvI);
-        fprintf(f18,"%d %lf %lf\n",i,vaux,pvI[i]/dvI);
+        f18_printf("%d %lf %lf\n",i,vaux,pvI[i]/dvI);
         }
 
     //Fill end points (periodicity) in all the axis.
@@ -639,6 +639,6 @@ int speckle::init_shell(int idseed){
     free(zscat);
     free(ff3);
     free(pvI);
-    fprintf(f18,"Speckle created\n");
+    f18_printf("Speckle created\n");
     return 0;
     }

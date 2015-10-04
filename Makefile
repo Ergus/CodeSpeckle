@@ -117,7 +117,7 @@ clean:
 	rm -rf *.o *.x
 
 cleanres:
-	rm -rf *.out *.log main.x.*,cn*.btr
+	rm -rf *.out *.log main.x.*,cn*.btr *.dat
 
 test: $(FILE)
 	./$(FILE) input

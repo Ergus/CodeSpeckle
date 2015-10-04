@@ -2,3 +2,5 @@
 *.o
 *.dat
 doc
+*.log
+*.out

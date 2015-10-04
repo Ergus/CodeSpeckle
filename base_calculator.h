@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string>
+#include <time.h>
 
 #ifndef printme
 #ifdef MPI_VERSION
@@ -52,7 +54,12 @@ class base_calculator{
             local_size(1),
             ngpu(0),      // you should set this value in the input file
             ncpu(sysconf(_SC_NPROCESSORS_ONLN)-1),
-            hostname(getenv("HOSTNAME")){}
+            hostname(getenv("HOSTNAME")){
+            //Initialize time variables just one time at very begining
+            time (&rawtime);
+            timeinfo = localtime (&rawtime);
+            strftime(timestr,80,"%a_%F_%X",timeinfo);
+            }
 
         /// Get the arrays with the dimensions
         /** \return Array of dimensions for every result. */
@@ -109,6 +116,13 @@ class base_calculator{
         string hostname;          ///< Name of the host (current node)
         int indices;              ///< Number of elements
         double *values;           ///< Array with the results
+
+        /** \name Some time variables */
+        ///\{
+        time_t rawtime;           ///< time_t object for start time
+        struct tm * timeinfo;     ///< tm struct for start time
+        char timestr[80];         ///< char* with start time %a_%F_%X
+        ///\}
     };
 
 #endif // BASE_CALCULATOR_H

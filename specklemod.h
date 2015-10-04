@@ -143,6 +143,21 @@ class speckle: public  base_calculator{
                                       ///< only if process function is called.        
 
     protected:
+        /// fprintf specific for f18 file that saves a speckle data for every seed.
+        /** This function guarantees that write process is made only if the file is open.
+            The FILE objects f18 is null by default, but if prefix is specified in command
+            line or input file then it is created as prefix_speckletype_seed.out define a 
+            prefix only for debugging purposes, it will be faster.*/
+        void f18_printf(const char * format, ... ){
+            if(f18){
+                va_list args;
+                va_start(args, format);
+                vfprintf(f18, format, args);
+                va_end(args);
+                fflush(f18);
+                }
+            };
+        
         int nov,                ///< Order of interpolation
             Nscatterers,              ///< Number of scatters
             npmax;
@@ -159,7 +174,8 @@ class speckle: public  base_calculator{
             max,                      ///< maximum value for values, initialized to 0
             size,                     ///< size internal for speckle
             vDi, focal, vlambda,
-            vDi2, focal2, cofactor, rphase;
+            vDi2, focal2, cofactor, rphase,
+            binsize;                  ///< SIze for the bin in the histogram
 
         bool nrescale,                ///< Choice of shift and rescale for sum2
             vectors;                  ///< Option to calculate vector or not
@@ -173,7 +189,8 @@ class speckle: public  base_calculator{
 
         string speckletype,           ///< Speckle type name.
             solver,                   ///< Solver name
-            fprefix;                  ///< Prefix for output, if "null" no output.
+            fprefix,                  ///< Prefix for output, if "null" no output.
+            continuefile;             ///< File to restart calculations, will be readed.
     private:
         
         double complex Vintensity;    ///< Intensity value. Variable for fftspeckle.
@@ -181,7 +198,6 @@ class speckle: public  base_calculator{
 
         friend class histogram;
         void use_option(int opt,const char* thearg);
-
     };
 
 #endif

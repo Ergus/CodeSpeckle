@@ -1,8 +1,9 @@
 #include "histogram.h"
 
-histogram::histogram(speckle *outter, double odeltaE):
-    deltaE(odeltaE),nrealiz(0),
-    nos(NULL),countr(NULL),dos(NULL),sumr(NULL),meanr(NULL)
+histogram::histogram(speckle *outter):
+    deltaE(outter->binsize),nrealiz(0),
+    nos(NULL),countr(NULL),dos(NULL),sumr(NULL),meanr(NULL),
+    caller(outter)
 {
     STARTDBG
     const double tmp =2.0*M_PI/outter->size;
@@ -23,8 +24,17 @@ histogram::histogram(speckle *outter, double odeltaE):
             printme();
             exit(EXIT_FAILURE);
             }
+    if (caller->continuefile!=""){
+        load_previous(caller->continuefile.c_str());
+        }
+    // this is to define the filename only, this can change easily
+    string filename="";
+    if(caller->fprefix!="NULL"){
+        filename=caller->fprefix+"_";
+        }
+    filename+=(caller->speckletype+"_"+caller->timestr+"_values.dat");
     
-    f10=fopen((outter->fprefix+"_dos.dat").c_str(),"w");       // dos.dat
+    f10=fopen(filename.c_str(),"w");       // dos.dat
     ENDDBG
     }
 
@@ -64,7 +74,7 @@ int histogram::process(const int np,const double *values){
                     
     double E=0;
     for(int i=0;i<ndeltaE;i++){
-        E+=deltaE;
+        E=(i+1)*deltaE;
         meanr[i]=(countr[i]==0 ? 0.0 : sumr[i]/countr[i]);
         fprintf(f10,"%d %lf %lf %lf %lf %d\n",
                 i, E, dos[i], meanr[i], sumr[i], countr[i]);

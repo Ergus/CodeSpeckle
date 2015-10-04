@@ -17,8 +17,8 @@ int speckle::parse(){
     {"speckletype", required_argument, 0, 't'},
     {"nov", required_argument, 0, 'n'},
     {"intensity", required_argument, 0, 'i'},
-    {"min", required_argument, 0, 'm'},
-    {"max", required_argument, 0, 'M'},
+    {"min", required_argument, 0, 'm'},      //min interestin value
+    {"max", required_argument, 0, 'M'},      //max interestin value
     //now some extra variables for runtime
     {"begin", required_argument, 0, 'b'},    //starting point
     {"end", required_argument, 0, 'e'},      //end point
@@ -26,6 +26,8 @@ int speckle::parse(){
     {"file", required_argument, 0, 'o'},     //output_prefix
     {"gpu", required_argument, 0, 'G'},      //ngpu
     {"cpu", required_argument, 0, 'C'},      //ncpu
+    {"restart",required_argument, 0, 'R'},   //continue previous calculations
+    {"binsize",required_argument, 0, 'B'},   //histogram binsize
 
     {"rescale", no_argument, 0, 'r'},
     {"vectors", no_argument, 0, 'a'},        
@@ -40,8 +42,10 @@ int speckle::parse(){
     int c, option_index = 0, i=0, linenum=0;
     optind=1;    //this is a global variable reseted to restart reading the argumemts; 
 
+    const char optstring[]="N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:C:G:R:B:rah";
+    
     // read all the options
-    while((c=getopt_long(largc, largv, "N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:C:G:rah",
+    while((c=getopt_long(largc, largv, optstring,
                          longopts, &option_index))!=-1){
         if(c=='h'){
             if(rank==0){
@@ -107,7 +111,7 @@ int speckle::parse(){
     
     //parse command line arguments
     optind=1;
-    while((c=getopt_long(largc, largv, "N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:C:G:rah",
+    while((c=getopt_long(largc, largv, optstring,
                          longopts, &option_index))!=-1){
         use_option(c,optarg);
         }
@@ -169,6 +173,8 @@ void speckle::use_option(int opt,const char* thearg){
         case 'C': ncpu=atoi(thearg); break;
         case 'S': solver=thearg; break;
         case 'o': fprefix=thearg; break;
+        case 'R': continuefile=thearg; break;  
+        case 'B': binsize=atof(thearg); break;
             
         case 'i':
             double real, imag;
