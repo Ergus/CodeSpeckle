@@ -52,7 +52,8 @@ speckle::speckle(int argc, char **argv):
     dxi=double(npmax)/size;
 
     if (save_dir!="") {
-        mkdir(save_dir.c_str(),0777);
+        int created=mkdir(save_dir.c_str(),0777);
+        if (created==0) printf("Process %d created dir %s\n",rank,save_dir.c_str());
         save_dir+="/";
         }
     if(fprefix=="NULL") fprefix="";   //prefix for output will beempty in this case
@@ -115,6 +116,7 @@ int speckle::init(int idseed){
     if(!VP) dbg_mem((VP=(double*) malloc(npxpu*npxpu*npxpu*sizeof(double))));
     if(!xpos) dbg_mem((xpos=(double*) malloc(npxpu*sizeof(double))));
 
+    #ifdef DEBUG
     if(fprefix!=""){
         sprintf(outputname,"%s%s%s_%d.out",
                 save_dir.c_str(),fprefix.c_str(),speckletype.c_str(),idseed);
@@ -122,7 +124,9 @@ int speckle::init(int idseed){
         f18=fopen(outputname,"a"); dbg_mem(f18);
         print(f18,'#');
         fprintf(f18,"# Seed\t %d\n",idseed);
-        }
+        }        
+            
+    #endif // DEBUG
 
     //execute the init
     (this->*pointer_init)(idseed);

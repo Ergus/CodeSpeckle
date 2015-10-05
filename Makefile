@@ -10,10 +10,7 @@ CXX = g++
 CXXFLAGS = -O2 -lpthread -openmp
 
 # Default flags for gcc (is is not working yet)
-GCC_MKLFLAGS=-I$(MKLROOT)/include -L$(MKLROOT)/lib/intel64/ -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5
-
-# Default flags for intel
-ICC_MKLFLAGS = -I$(MKLROOT)/include -mkl=parallel -lpthread
+GCC_MKLFLAGS=
 
 # Here start the rules.
 FILE = speckle.x
@@ -42,17 +39,16 @@ ifdef MKLROOT
 # Flags for MKL
 MACROS = -DUMKL
 ifeq ($(CXX),icpc)
- MKLFLAGS=$(GCC_MKLFLAGS)
-else
- MKLFLAGS=$(GCC_MKLFLAGS)
- $(warning No intel compiler available, please load the module intel)
+ MKLFLAGS = -I$(MKLROOT)/include 
+ THELIBS += -L$(MKLROOT)/lib/intel64/ -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5
 endif
 FLAGS = $(MKLFLAGS)
 LIBS += mkl_solver.o
 endif
 
 ifdef HWLOC_HOME
-  MAGMALIBS += -L$(HWLOC_HOME)/lib -lhwloc
+  FLAGS += -I$(HWLOC_HOME)/include
+  THELIBS += -L$(HWLOC_HOME)/lib -lhwloc
 endif
 
 ifdef PLASMA_INC	# Now with MKL we check for Plasma, is not mandatory
@@ -60,8 +56,8 @@ ifdef PLASMA_INC	# Now with MKL we check for Plasma, is not mandatory
   ifdef MKLFLAGS
   # FLags for Plasma
   MACROS = -DUPLASMA -DPLASMA_WITH_MKL
-  PLASMAFLAGS = -I$(PLASMA_INC) -openmp -I$(HWLOC_HOME)/include $(CCFLAGS)
-  PLASMALIBS = -L$(PLASMA_LIB) -lplasma -lcoreblasqw -lcoreblas -lquark
+  PLASMAFLAGS = -I$(PLASMA_INC) -openmp  $(CCFLAGS)
+  THELIBS += -L$(PLASMA_LIB) -lplasma -lcoreblasqw -lcoreblas -lquark
   FLAGS += $(PLASMAFLAGS)
   LIBS += plasma_solver.o
   endif
@@ -77,7 +73,7 @@ ifdef MAGMA_INC	       # Now with MKL we check for Plasma, is not mandatory
   # Flags for Magma
   MACROS += -DUMAGMA -DMAGMA_WITH_MKL -DMAGMA_SETAFFINITY -DADD_
   MAGMAFLAGS = -DUMAGMA -I$(MAGMA_INC) -I$(CUDADIR)/include  $(CCFLAGS)
-  MAGMALIBS =  -DUMAGMA -L$(MAGMA_LIB) -L$(CUDADIR)/lib64 -L$(HWLOC_HOME)/lib -lmagma -lcublas -lcudart
+  THELIBS +=  -DUMAGMA -L$(MAGMA_LIB) -L$(CUDADIR)/lib64 -lmagma -lcublas -lcudart
   FLAGS += $(MAGMAFLAGS)
   LIBS += magma_solver.o magma_solver_2stage.o
   endif
@@ -120,10 +116,10 @@ endif
 
 
 $(FILE_MPI): main.cc $(LIBS) slaves_mpi.o
-	$(MPICXX) $(CXXFLAGS) $(FLAGS) $^ -o $@ $(MAGMALIBS) $(PLASMALIBS)
+	$(MPICXX) $(CXXFLAGS) $(FLAGS) $^ -o $@ $(THELIBS)
 
 $(FILE): main.cc $(LIBS) slaves.o
-	$(CXX) $(CXXFLAGS) $(FLAGS) $^ -o $@ $(MAGMALIBS) $(PLASMALIBS)
+	$(CXX) $(CXXFLAGS) $(FLAGS) $^ -o $@ $(THELIBS)
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $(FLAGS) -c $^ -o $@
