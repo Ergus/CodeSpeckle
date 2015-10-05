@@ -31,7 +31,7 @@ void polint(double* xa, double* ya,int n, double x, double &y, double &dy){
             d[i]=hp*den;
             c[i]=ho*den;
             }
-        dy=(2*(ns+1)<bound?c[ns+1]:dy=d[ns--]);
+        dy=(2*(ns+1)<bound?c[ns+1]:d[ns--]);
         y+=dy;
         }
     }

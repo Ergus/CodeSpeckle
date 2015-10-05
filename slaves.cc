@@ -3,9 +3,9 @@
 slaves::slaves(int argc, char** argv):
     speckle(argc, argv),
     cont(0),
+    total_processed(0),    
     seeds(NULL),
     seeds_processed(NULL),
-    total_processed(0),
     logfile(NULL)
 {
     STARTDBG
@@ -25,9 +25,10 @@ slaves::slaves(int argc, char** argv):
         pthread_mutex_init(&mutex1, NULL);
         pthread_mutex_init(&mutex2, NULL);
         pthread_mutex_init(&mutex3, NULL);
-        //start logfile and time checking
-     
-        string filename="logfile_"+speckletype+"_"+timestr+".log";
+        
+        //start logfile
+        string filename= save_dir+fprefix+"logfile_"+speckletype+"_"+timestr+".log";
+        
         logfile= fopen(filename.c_str(), "w");
         log_printf("Logfile for %s version of speckle code\n",VERSION);
         }

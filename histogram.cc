@@ -2,8 +2,8 @@
 
 histogram::histogram(speckle *outter):
     deltaE(outter->binsize),nrealiz(0),
-    nos(NULL),countr(NULL),dos(NULL),sumr(NULL),meanr(NULL),
-    caller(outter),gnuplot(NULL),filename("")
+    dos(NULL),sumr(NULL),meanr(NULL),nos(NULL),countr(NULL),
+    gnuplot(NULL),caller(outter),filename("")
 {
     STARTDBG
     const double tmp =2.0*M_PI/outter->size;
@@ -20,9 +20,9 @@ histogram::histogram(speckle *outter):
     meanr=(double*) calloc(ndeltaE,sizeof(double));
 
     // this is to define the new output only, this can change easily
-    if(caller->fprefix!="NULL") filename=caller->fprefix+"_";
-    
-    filename+=(caller->speckletype+"_"+caller->timestr+"_values.dat");
+    filename=caller->save_dir+caller->fprefix+
+        caller->speckletype+"_"+caller->timestr+"_values.dat";
+
     
     f10=fopen(filename.c_str(),"w");       // values.dat    
 

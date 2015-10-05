@@ -4,7 +4,7 @@ magma_solver_2stage::magma_solver_2stage(int on, bool ovectors,
                            double omin, double omax,
                            int ongpu):
     solver(on,ovectors,omin,omax),
-    ngpu(ongpu), uplo(MagmaLower),
+    uplo(MagmaLower),ngpu(ongpu), 
     iwork(NULL),rwork(NULL),work(NULL){
 
     // initialize magma system

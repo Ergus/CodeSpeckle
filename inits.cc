@@ -231,9 +231,8 @@ int speckle::init_sum2(int idseed){
         invlambdafoc2=1.0/(vlambda*focal2);
         for(int nx2=0, y1=0, y2=0; nx2<npx; nx2++, y1+=npx, y2+=npu){
             xcord[1]=focal2+dx*nx2;
-            for(int nx1=0, idx, idx2; nx1<npx; nx1++){
+            for(int nx1=0, idx; nx1<npx; nx1++){
                 idx=x1+y1+nx1;      //For all the arrays
-                idx2=x2+y2+nx1;     //For VP that have extra size                
                 xcord[0]=dx*nx1;
                 for(int i=0;i<Nscatterers;i++){
                     double xscata=xscat[i];
@@ -348,7 +347,6 @@ int speckle::init_single(int idseed){
         npu2=npxpu*npxpu, ngridvI =1000;
 
     double vmaxradscat =1.0/(2*vDi ),
-        vmaxradscat2=1.0/(2*vDi2),
         deltaR =vlambda*focal /size,
         vmaxradscatquad=vmaxradscat*vmaxradscat,
         invlambdafoc=1.0/(vlambda*focal),
@@ -499,14 +497,9 @@ int speckle::init_shell(int idseed){
         npu2=npxpu*npxpu, ngridvI =1000;
     
     double vmaxradscat =1.0/(2*vDi ),
-        vmaxradscat2=1.0/(2*vDi2),
         deltaR =vlambda*focal /size,
-        deltaR2=vlambda*focal2/size,        
-        vmaxradscatquad=vmaxradscat*vmaxradscat,
-        vmaxradscat2quad=vmaxradscat2*vmaxradscat2,
         aver=0.0,
         invlambdafoc=1.0/(vlambda*focal),
-        invlambdafoc2,               //this is only references in plain and sum2
         stdev=0.0,
         vImax=10.0,
         dvI=vImax/ngridvI,

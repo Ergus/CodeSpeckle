@@ -6,112 +6,133 @@
 
 SHELL := /bin/bash
 
-CXX = icpc
-CXXFLAGS = -O2
+CXX = g++
+CXXFLAGS = -O2 -lpthread -openmp
+
+# Default flags for gcc (is is not working yet)
+GCC_MKLFLAGS=-I$(MKLROOT)/include -L$(MKLROOT)/lib/intel64/ -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5
+
+# Default flags for intel
+ICC_MKLFLAGS = -I$(MKLROOT)/include -mkl=parallel -lpthread
 
 # Here start the rules.
-FILE = main.x
-LIBS = auxiliary.o histogram.o specklemod.o inits.o parser.o slaves.o
+FILE = speckle.x
+FILE_MPI = speckle_mpi.x
 
-MPI_RESULT := $(shell which mpicxx 2> /dev/null)
+LIBS = auxiliary.o histogram.o specklemod.o inits.o parser.o
+
+MPI_RESULT := $(shell which icpc 2> /dev/null)
 MPI_TEST := $(notdir $(MPI_RESULT))
-ifeq ($(MPI_TEST),mpicxx)
- $(info MPI compiler found)
- MPICXX=mpicxx
- MPIFLAGS = -DUMPI
-else
- $(warning MPI compiler not found)
+ifeq ($(MPI_TEST),icpc)
+ CXX=icpc
 endif
 
+
 MPI_RESULT := $(shell which mpicxx 2> /dev/null)
 MPI_TEST := $(notdir $(MPI_RESULT))
 ifeq ($(MPI_TEST),mpicxx)
  $(info MPI compiler found)
  MPICXX=mpicxx
  MPIFLAGS = -DUMPI
-else
- $(warning MPI compiler not found)
 endif
 
 ##-----------------------------------------------
 # Check libraries mkl (mandatory), plasma and magma
-
 ifdef MKLROOT
 # Flags for MKL
- MACROS = -DUMKL
- MKLFLAGS = -I$(MKLROOT)/include -mkl=parallel -lpthread
- FLAGS = $(MKLFLAGS)
- LIBS += mkl_solver.o
+MACROS = -DUMKL
+ifeq ($(CXX),icpc)
+ MKLFLAGS=$(GCC_MKLFLAGS)
 else
- $(error MKLROOT is undefined, please load MKL)
+ MKLFLAGS=$(GCC_MKLFLAGS)
+ $(warning No intel compiler available, please load the module intel)
+endif
+FLAGS = $(MKLFLAGS)
+LIBS += mkl_solver.o
+endif
+
+ifdef HWLOC_HOME
+  MAGMALIBS += -L$(HWLOC_HOME)/lib -lhwloc
 endif
 
 ifdef PLASMA_INC	# Now with MKL we check for Plasma, is not mandatory
  ifdef PLASMA_LIB
+  ifdef MKLFLAGS
   # FLags for Plasma
   MACROS = -DUPLASMA -DPLASMA_WITH_MKL
   PLASMAFLAGS = -I$(PLASMA_INC) -openmp -I$(HWLOC_HOME)/include $(CCFLAGS)
-  PLASMALIBS = -L$(PLASMA_LIB) -lplasma -lcoreblasqw -lcoreblas -lquark -llapacke -mkl=parallel
+  PLASMALIBS = -L$(PLASMA_LIB) -lplasma -lcoreblasqw -lcoreblas -lquark
   FLAGS += $(PLASMAFLAGS)
   LIBS += plasma_solver.o
+  endif
 endif
 else
- $(warning No plasma support will be installed,)
- $(warning define PLASMA_INC and PLASMA_LIBS)
+ $(info No plasma support will be installed,)
+ $(info define PLASMA_INC and PLASMA_LIBS)
 endif
 
 ifdef MAGMA_INC	       # Now with MKL we check for Plasma, is not mandatory
  ifdef MAGMA_LIB
+  ifdef MKLFLAGS
   # Flags for Magma
   MACROS += -DUMAGMA -DMAGMA_WITH_MKL -DMAGMA_SETAFFINITY -DADD_
   MAGMAFLAGS = -DUMAGMA -I$(MAGMA_INC) -I$(CUDADIR)/include  $(CCFLAGS)
-  MAGMALIBS =  -DUMAGMA -L$(MAGMA_LIB) -L$(CUDADIR)/lib64 -lmagma -lcublas -lcudart  -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -openmp
+  MAGMALIBS =  -DUMAGMA -L$(MAGMA_LIB) -L$(CUDADIR)/lib64 -L$(HWLOC_HOME)/lib -lmagma -lcublas -lcudart
   FLAGS += $(MAGMAFLAGS)
   LIBS += magma_solver.o magma_solver_2stage.o
+  endif
  endif
 else
- $(warning No Magma support will be installed)
- $(warning define MAGMA_INC and MAGMA_LIBS)
+ $(info No Magma support will be installed)
+ $(info define MAGMA_INC and MAGMA_LIBS)
 endif
-
+# The macro var contains now the right support to be
+# compiles after checking the enviroments
 CXXFLAGS += $(MACROS)
-##-----------------------------------------------
-
-all: $(FILE)
-
+#-----------------------------------------------
+# to compile everything ones
 debug: CXXFLAGS = -O0 -DDEBUG -g -Wall -DUNIX $(MACROS)
-debug: $(FILE)
 
 debug_mpi: CXXFLAGS = -O0 -DDEBUG -g -Wall -DUNIX $(MACROS)
-debug_mpi: mpi
 
-mpi: CXX = $(MPICXX)
 mpi: CXXFLAGS += $(MPIFLAGS)
-mpi: $(FILE)
+mpi: LIBS += slaves_mpi.o
 
-main.x: main.cc $(LIBS)
+# Show a message if no MKL loaded
+ifdef MKLROOT
+ all: $(FILE)
+ debug: all
+ ifeq ($(MPICXX),mpicxx)
+  all: mpi
+  # mpi debug version
+  debug_mpi: mpi
+  # mpi normal version
+  mpi: $(FILE_MPI)
+ else
+  all: 
+	$(warning Only serial code will be compiled)
+	$(warning load openmpi for paralell version)
+ endif
+else
+ all: 
+	$(warning Please load MKL)
+endif
+
+
+$(FILE_MPI): main.cc $(LIBS) slaves_mpi.o
+	$(MPICXX) $(CXXFLAGS) $(FLAGS) $^ -o $@ $(MAGMALIBS) $(PLASMALIBS)
+
+$(FILE): main.cc $(LIBS) slaves.o
 	$(CXX) $(CXXFLAGS) $(FLAGS) $^ -o $@ $(MAGMALIBS) $(PLASMALIBS)
-
-plasma_solver.o: plasma_solver.cc
-	$(CXX) $(CXXFLAGS) $(FLAGS) -c $^ -o $@
-
-magma_solver.o: magma_solver.cc
-	$(CXX) $(CXXFLAGS) $(FLAGS) -c $^ -o $@
-
-magma_solver_2stage.o: magma_solver_2stage.cc
-	$(CXX) $(CXXFLAGS) $(FLAGS) -c $^ -o $@
-
-mkl_solver.o: mkl_solver.cc
-	$(CXX) $(CXXFLAGS) $(FLAGS) -c $^ -o $@
-
-specklemod.o: specklemod.cc
-	$(CXX) $(CXXFLAGS) $(FLAGS) -c $^ -o $@
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $(FLAGS) -c $^ -o $@
 
+slaves_mpi.o: slaves.cc
+	$(MPICXX) $(CXXFLAGS) $(FLAGS) -c $^ -o $@
+
 # Extra rules
-.PHONY: clean test cleares
+.PHONY: clean test cleares mklcheck
 
 clean:
 	rm -rf *.o *.x
@@ -121,6 +142,4 @@ cleanres:
 
 test: $(FILE)
 	./$(FILE) input
-
-
 

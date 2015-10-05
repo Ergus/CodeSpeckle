@@ -53,7 +53,7 @@ int plasma_solver::solve(double complex *oA){
     //Cast for Input Matrix
     PLASMA_Complex64_t *hA=(PLASMA_Complex64_t *)oA;
 
-    if(range=PlasmaAllVec){
+    if(range==PlasmaAllVec){
         info=PLASMA_zheev(jobz, uplo, n,
                            hA, n, w, desc,
                            oV, n);

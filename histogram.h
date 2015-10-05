@@ -71,7 +71,7 @@ class histogram{
             fgets(ignore, sizeof(ignore), fp);
             //start parsing
             for(int i=0;i<ndeltaE;i++){
-                int matched=fscanf(fp,"%*d %*lf %lf %lf %lf %d",
+                int matched=fscanf(fp,"%*d %*f %lf %lf %lf %d",
                                    &dos[i], &meanr[i], &sumr[i], &countr[i]);
 
                 // an error exit the program because some
@@ -92,7 +92,7 @@ class histogram{
         int ndeltaE;
         double EMax;
         int nrealiz;
-        double *dos, *sumr, *meanr, *diffeigen;
+        double *dos, *sumr, *meanr;
         int *nos, *countr;
         FILE* f10,         // values.dat
             * gnuplot;

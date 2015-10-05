@@ -18,6 +18,7 @@
 
 #include "solver.h"
 #include "mkl_solver.h"
+#include <sys/stat.h>
 
 #define DEFAULT_SOLVER mkl_solver
 
@@ -136,18 +137,19 @@ class speckle: public  base_calculator{
             - #init_shell */
         int (speckle::*pointer_init)(int seed);
 
+        histogram* thehist;           ///< Pointer to histogram class, constructed
+                                      ///< only if process function is called.        
+        
         /// Serial version for the getseed routine
         virtual int getseed(){return( it<=end ? it++ : -1 );}
 
-        histogram* thehist;         ///< Pointer to histogram class, constructed
-                                      ///< only if process function is called.        
-
-    protected:
         /// fprintf specific for f18 file that saves a speckle data for every seed.
-        /** This function guarantees that write process is made only if the file is open.
-            The FILE objects f18 is null by default, but if prefix is specified in command
-            line or input file then it is created as prefix_speckletype_seed.out define a 
-            prefix only for debugging purposes, it will be faster.*/
+        /** This function guarantees that write process is made only if the file 
+            is open.
+            The FILE objects f18 is null by default, but if prefix is specified 
+            in command line or input file then it is created as 
+            prefix_speckletype_seed.out. Define a prefix only for debugging purposes, 
+            it will be faster.*/
         void f18_printf(const char * format, ... ){
             if(f18){
                 va_list args;
@@ -160,8 +162,8 @@ class speckle: public  base_calculator{
         
         int nov,                ///< Order of interpolation
             Nscatterers,              ///< Number of scatters
-            npmax;
-        int npxpu,                    ///< npmax+1, used for backwar compatibility
+            npmax,
+            npxpu,                    ///< npmax+1, used for backwar compatibility
             Ntot,                     ///< Dimension for Matrix A
             it;
         
@@ -169,13 +171,22 @@ class speckle: public  base_calculator{
             *xpos;                    ///< array for xpos
         
         double dxi, dx,
-            micron,
             min,                      ///< minimum value for values, initialized to 0
             max,                      ///< maximum value for values, initialized to 0
             size,                     ///< size internal for speckle
             vDi, focal, vlambda,
             vDi2, focal2, cofactor, rphase,
             binsize;                  ///< SIze for the bin in the histogram
+
+        int largc;                    ///< Standard input counter
+        char **largv;                 ///< Standard input array
+        FILE* f18;                    ///< Output file pointer.
+
+        string speckletype,           ///< Speckle type name.
+            solvername,               ///< Solver name
+            fprefix,                  ///< Prefix for output, if "null" no output.
+            save_dir,
+            continuefile;             ///< File to restart calculations, will be readed.
         
         /** \name Bool flags
             All are false by default, so should be activated manually.*/
@@ -184,23 +195,14 @@ class speckle: public  base_calculator{
             vectors,                  ///< Option to calculate vector or not
             usegnuplot;               ///< Activates the gnuplot dynamic graphs.
         ///\}
-
-        double complex *Vk;
-
-        int largc;                    ///< Standard input counter
-        char **largv;                 ///< Standard input array
-
-        char outputname[50];          ///< Full name for the final file if not null
-        FILE* f18;                    ///< Output file pointer.
-
-        string speckletype,           ///< Speckle type name.
-            solver,                   ///< Solver name
-            fprefix,                  ///< Prefix for output, if "null" no output.
-            continuefile;             ///< File to restart calculations, will be readed.
+        
     private:
         
         double complex Vintensity;    ///< Intensity value. Variable for fftspeckle.
-        double complex *A;            ///< This will have dimension 2, matrix for solver
+        double complex *A,            ///< This will have dimension 2
+            *Vk;                      ///< This will have dimension 3
+
+        char outputname[50];          ///< Full name for the final file if prefix !null
 
         friend class histogram;
         void use_option(int opt,const char* thearg);

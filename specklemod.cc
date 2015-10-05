@@ -1,52 +1,63 @@
 #include "specklemod.h"
 
 speckle::speckle(int argc, char **argv):
-    // pointers and arrays
-    Vk(NULL),
-    xpos(NULL),
-    A(NULL),
-    VP(NULL),
+    // Internal pointers very important
     thesolver(NULL),
     pointer_init(NULL),
-    f18(NULL),
+    thehist(NULL),
     // ints
+    nov(4),
     Nscatterers(10),
     npmax(0),                      // This values are checked for errors
-    nov(4),
+    // double arrays
+    VP(NULL),
+    xpos(NULL),
+ 
     // doubles
+    min(0), max(0),
     size(0.11),
     vDi(0.05635245901639344262),
-    vDi2(0.05635245901639344262),    
     focal(40.0),
-    focal2(30.0),
     vlambda(800.0e-6),
+    vDi2(0.05635245901639344262),    
+    focal2(30.0),    
     cofactor(1.0),    
     rphase(0.0),
     binsize(0.5),
-    min(0), max(0),
-    // complex number
-    Vintensity(2.0*M_PI*M_PI),
+    
+    largc(argc), largv(argv),
+    f18(NULL),    
+    fprefix("NULL"),
+    save_dir(""),
+    continuefile(""),
+
     // bools
     nrescale(false),    	   // shift and rescale sum2 speckle
     vectors(false),
-    usegnuplot(false),
-    //run needed
-    fprefix("NULL"),
-    largc(argc), largv(argv),
-    thehist(NULL),
-    continuefile("")
+    usegnuplot(false),    
+
+    // complex number
+    Vintensity(2.0*M_PI*M_PI),
     
+    // internal arrays
+    A(NULL), Vk(NULL)
 {
     STARTDBG
     parse();
-    it=start;
-    
     npxpu=npmax+1;
     Ntot=npmax*npmax*npmax;
-
+    it=start;
+    
     dx =size/double(npmax);
     dxi=double(npmax)/size;
 
+    if (save_dir!="") {
+        printf("\nCreating dir %s\n",save_dir.c_str());
+        mkdir(save_dir.c_str(),0777);
+        save_dir+="/";
+        }
+    if(fprefix=="NULL") fprefix="";   //prefix for output will beempty in this case
+    
     //Set the speckle type to use
     if(speckletype=="spherical") pointer_init=&speckle::init_spherical;
     else if(speckletype=="sum2") pointer_init=&speckle::init_sum2;
@@ -59,24 +70,24 @@ speckle::speckle(int argc, char **argv):
         }
     
     //set the solver to use
-    if(solver=="mkl"){
+    if(solvername=="mkl"){
         thesolver=new mkl_solver(Ntot,vectors,min,max);
         }
     #ifdef UMAGMA
-    else if(solver=="magma"){
+    else if(solvername=="magma"){
         thesolver=new magma_solver(Ntot,vectors,min,max,ngpu);
         }
-    else if(solver=="magma_2stage"){
+    else if(solvername=="magma_2stage"){
         thesolver=new magma_solver_2stage(Ntot,vectors,min,max,ngpu);
         }
     #endif
     #ifdef UPLASMA
-    else if(solver=="plasma"){
+    else if(solvername=="plasma"){
         thesolver=new plasma_solver(Ntot,vectors,min,max);
         }
     #endif
     else{
-        fprintf(stderr,"Solver=%s is not valid\n",solver.c_str());
+        fprintf(stderr,"Solver=%s is not valid\n",solvername.c_str());
         fprintf(stderr,"Maybe a compilation time option not set\n");
         printme();
         exit(EXIT_FAILURE);
@@ -105,13 +116,15 @@ int speckle::init(int idseed){
     if(!VP) dbg_mem((VP=(double*) malloc(npxpu*npxpu*npxpu*sizeof(double))));
     if(!xpos) dbg_mem((xpos=(double*) malloc(npxpu*sizeof(double))));
 
-    if(fprefix!="NULL"){
-        sprintf(outputname,"%s_%s_%d.out",fprefix.c_str(),speckletype.c_str(),idseed);
+    if(fprefix!=""){
+        sprintf(outputname,"%s%s%s_%d.out",
+                save_dir.c_str(),fprefix.c_str(),speckletype.c_str(),idseed);
+    
         f18=fopen(outputname,"a"); dbg_mem(f18);
         print(f18,'#');
-        fprintf(f18,"# Seed\t %d\n",idseed);        
+        fprintf(f18,"# Seed\t %d\n",idseed);
         }
-    //open the file just for a moment the close it
+
     //execute the init
     (this->*pointer_init)(idseed);
     ENDDBG
@@ -123,7 +136,6 @@ int speckle::ftspeckle(){
     //In all the cases N1==N2==N3 so the original Ni vars were sustituted by npx
     const int npx=npmax, npx2=npx*npx, npu=npxpu, npu2=npxpu*npxpu, padx=npx/2+1;
     
-    MKL_LONG status;
     MKL_LONG N[]={ npx, npx, npx};
     //MKL_LONG rstrides[]={ 0,     npx2,  npx, 1};
     //MKL_LONG cstrides[]={ 0, npx*padx, padx, 1};

@@ -27,7 +27,7 @@
 #endif //MPI_VERSION
 #endif // printme
 
-#ifdef DEBUG;
+#ifdef DEBUG
  #define STARTDBG fprintf(stderr,"Calling %s: %s:%d\n",                   \
                          __PRETTY_FUNCTION__,__FILE__,__LINE__);
  #define ENDDBG fprintf(stderr,"Ended %s: %s:%d\n",                       \

@@ -28,6 +28,7 @@ int speckle::parse(){
     {"cpu", required_argument, 0, 'C'},      //ncpu
     {"restart",required_argument, 0, 'R'},   //continue previous calculations
     {"binsize",required_argument, 0, 'B'},   //histogram binsize
+    {"dir",required_argument, 0, 'd'},       //directory for results
     
     {"gnuplot", no_argument, 0, 'g'},
     {"rescale", no_argument, 0, 'r'},
@@ -43,7 +44,7 @@ int speckle::parse(){
     int c, option_index = 0, i=0, linenum=0;
     optind=1;    //this is a global variable reseted to restart reading the argumemts; 
 
-    const char optstring[]="N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:C:G:R:B:grah";
+    const char optstring[]="N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:C:G:R:d:B:grah";
     
     // read all the options
     while((c=getopt_long(largc, largv, optstring,
@@ -86,7 +87,6 @@ int speckle::parse(){
         if(line[0]!='#'){
             line=strtok(line,"#");
             if(sscanf(line,"%s %s %*s",w1,w2)>=1){
-                int tmp_deb=0;
                 i=0;
                 while(true){
                     option curopt=longopts[i++];
@@ -103,7 +103,6 @@ int speckle::parse(){
                         use_option(curopt.val,w2);
                         break;
                         }
-                    if(++tmp_deb==20) break;
                     }
                 }
             }
@@ -148,8 +147,9 @@ void speckle::print(FILE* ou,char pre){
     fprintf(ou,"%c begin      \t %d\n",pre,start);
     fprintf(ou,"%c end        \t %d\n",pre,end);
                    
-    fprintf(ou,"%c solver     \t %s\n",pre,solver.c_str());
+    fprintf(ou,"%c solver     \t %s\n",pre,solvername.c_str());
     fprintf(ou,"%c file_prefix\t %s\n",pre,fprefix.c_str());
+    fprintf(ou,"%c save_dir   \t %s\n",pre,save_dir.c_str());
     if(continuefile!=""){
         fprintf(ou,"%c continues  \t %s\n",pre,continuefile.c_str());
         }
@@ -178,10 +178,11 @@ void speckle::use_option(int opt,const char* thearg){
         case 'e': end=atoi(thearg); break;
         case 'G': ngpu=atoi(thearg); break;
         case 'C': ncpu=atoi(thearg); break;
-        case 'S': solver=thearg; break;
+        case 'S': solvername=thearg; break;
         case 'o': fprefix=thearg; break;
         case 'R': continuefile=thearg; break;  
         case 'B': binsize=atof(thearg); break;
+        case 'd': save_dir=thearg; break;
             
         case 'i':
             double real, imag;

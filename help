@@ -31,6 +31,7 @@ Command line parameters overwrite a parameter if also specified in the command l
     -t, --speckletype <string>: no default value (Mandatory) possible values are: "spherical", "sum2", "single" and "shell". Any other value will stop in error.
     -a, --vectors: No parameter assumed false only is specified
 
+    -d, --dir <string>: default "." (currentdir). Directory to save the results for calculations.
     -o, --file <string>: default "NULL". Prefix for individual files. If vale is "NULL" no individual files will be created.
     -B, --binsize <double>: default 0.5. Size for the bin in the histogram.
     -R, --restart <string>: default "". A *values.dat file to reload and continue a previous calculation. Please be carefull with the seeds to prevent repetitions and the input file should be the same. The program automatically will not take care of that. To know the last seed used in the file read the corresponding logfile.

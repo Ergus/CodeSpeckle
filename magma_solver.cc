@@ -4,8 +4,9 @@ magma_solver::magma_solver(int on, bool ovectors,
                            double omin, double omax,
                            int ongpu):
     solver(on,ovectors,omin,omax),
-    ngpu(ongpu), uplo(MagmaLower),
-    iwork(NULL),rwork(NULL),work(NULL){
+    uplo(MagmaLower), ngpu(ongpu), 
+    iwork(NULL),rwork(NULL),work(NULL)    
+{
     STARTDBG
     // initialize magma system
     magma_init();

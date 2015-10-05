@@ -19,8 +19,9 @@ nov 4
 speckletype shell
 solver plasma
 intensity 19.73920880230698+0I  #2*pi^2 as in code
-start 1
+begin 1
 end 4
 gpu 2
-
-file salida
+cpu 10
+dir savedir
+#file results  
