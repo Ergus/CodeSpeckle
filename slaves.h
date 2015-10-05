@@ -51,6 +51,9 @@ class slaves: public speckle{
             if(seeds) delete[] seeds;  //only deallocate in rank 0
             if(seeds_processed) delete[] seeds_processed;
             if (logfile){
+                time_t time_end;
+                time(&time_end);
+                log_printf("Elapsed time with np %d %d\n",wsize,time_end-rawtime);
                 log_printf("Slaves class destructed in process: %d\n",rank);
                 fclose(logfile);
                 }

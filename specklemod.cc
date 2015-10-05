@@ -52,7 +52,6 @@ speckle::speckle(int argc, char **argv):
     dxi=double(npmax)/size;
 
     if (save_dir!="") {
-        printf("\nCreating dir %s\n",save_dir.c_str());
         mkdir(save_dir.c_str(),0777);
         save_dir+="/";
         }
