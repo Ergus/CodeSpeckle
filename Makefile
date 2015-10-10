@@ -16,15 +16,16 @@ GCC_MKLFLAGS=
 FILE = speckle.x
 FILE_MPI = speckle_mpi.x
 
-LIBS = auxiliary.o histogram.o specklemod.o inits.o parser.o
+LIBS = specklemod.cc base_calculator.cc histogram.cc inits.cc parser.cc
 
+# Look for intel compiler
 MPI_RESULT := $(shell which icpc 2> /dev/null)
 MPI_TEST := $(notdir $(MPI_RESULT))
 ifeq ($(MPI_TEST),icpc)
  CXX=icpc
 endif
 
-
+# Look for mpi
 MPI_RESULT := $(shell which mpicxx 2> /dev/null)
 MPI_TEST := $(notdir $(MPI_RESULT))
 ifeq ($(MPI_TEST),mpicxx)
@@ -115,21 +116,18 @@ else
 endif
 
 
-$(FILE_MPI): main.cc $(LIBS) slaves_mpi.o
+$(FILE_MPI): main.cc specklemod.cc base_calculator.cc $(LIBS)
 	$(MPICXX) $(CXXFLAGS) $(FLAGS) $^ -o $@ $(THELIBS)
 
-$(FILE): main.cc $(LIBS) slaves.o
+$(FILE): main.cc specklemod.cc base_calculator.cc $(LIBS)
 	$(CXX) $(CXXFLAGS) $(FLAGS) $^ -o $@ $(THELIBS)
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $(FLAGS) -c $^ -o $@
 
-slaves_mpi.o: slaves.cc
-	$(MPICXX) $(CXXFLAGS) $(FLAGS) -c $^ -o $@
 
 # Extra rules
-.PHONY: clean test cleares mklcheck
-
+.PHONY: clean cleanres test
 clean:
 	rm -rf *.o *.x
 

@@ -20,11 +20,15 @@ histogram::histogram(speckle *outter):
     dos=(double*) calloc(ndeltaE,sizeof(double));
     sumr=(double*) calloc(ndeltaE,sizeof(double));
     meanr=(double*) calloc(ndeltaE,sizeof(double));
+    // check if everything was fine
+    if(!(nos && countr && dos && sumr && meanr)){
+        fprintf(stderr,"Error in histogram constructer\n");
+        printme();
+        exit(EXIT_FAILURE);
+        }
 
     // this is to define the new output only, this can change easily
-    filename=caller->save_dir+caller->fprefix+
-        caller->speckletype+"_"+caller->timestr+"_values.dat";
-
+    filename=caller->dirname+"/"+caller->filename+"_values.dat";
     
     f10=fopen(filename.c_str(),"w");       // values.dat    
 

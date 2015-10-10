@@ -17,9 +17,9 @@ rphase 0.0
 npmax 16
 nov 4
 speckletype shell
-solver plasma
 intensity 19.73920880230698+0I  #2*pi^2 as in code
 begin 1
+solver plasma
 end 2
 gpu 2
 dir savedir

@@ -141,8 +141,6 @@ void speckle::print(FILE* ou,char pre){
     fprintf(ou,"%c max        \t %lg\n",pre,max);
     fprintf(ou,"%c binsize    \t %lg\n",pre,binsize);
 
-    fprintf(ou,"%c ngpu       \t %d\n",pre,ngpu);
-    fprintf(ou,"%c ncpu       \t %d\n",pre,ncpu);
     fprintf(ou,"%c save_interv\t %d\n",pre,save_interval);
     
     fprintf(ou,"%c begin      \t %d\n",pre,start);
@@ -150,10 +148,13 @@ void speckle::print(FILE* ou,char pre){
                    
     fprintf(ou,"%c solver     \t %s\n",pre,solvername.c_str());
     fprintf(ou,"%c file_prefix\t %s\n",pre,fprefix.c_str());
-    fprintf(ou,"%c save_dir   \t %s\n",pre,save_dir.c_str());
+    fprintf(ou,"%c save_dir   \t %s\n",pre,dirname.c_str());
     if(continuefile!=""){
         fprintf(ou,"%c continues  \t %s\n",pre,continuefile.c_str());
         }
+
+    //Call the print from the parent
+    base_calculator::print(ou,pre);
     }
 
 void speckle::use_option(int opt,const char* thearg){
@@ -183,7 +184,7 @@ void speckle::use_option(int opt,const char* thearg){
         case 'R': continuefile=thearg; break;  
         case 'B': binsize=atof(thearg); break;
         case 'I': save_interval=atoi(thearg); break;
-        case 'd': save_dir=thearg; break;
+        case 'd': dirname=thearg; break;
             
         case 'i':
             double real, imag;

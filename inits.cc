@@ -1,6 +1,7 @@
 #include "specklemod.h"
 
 int speckle::init_spherical(int idseed){
+    STARTDBG
     const int npx=npmax, npx2=npmax*npmax, npu=npxpu,
         npu2=npxpu*npxpu, ngridvI =1000;
     
@@ -141,10 +142,12 @@ int speckle::init_spherical(int idseed){
     free(ff3);
     free(pvI);
     f18_printf("# Speckle created\n");
+    ENDDBG;
     return 0;
     }
 
 int speckle::init_sum2(int idseed){
+    STARTDBG
     //For to be used internally, not needed but for to make
     //the code looks like the Fortran One
     const int npx=npmax, npx2=npmax*npmax, npu=npxpu, npu2=npxpu*npxpu,
@@ -337,10 +340,12 @@ int speckle::init_sum2(int idseed){
     free(ff3);
     free(pvI);
     f18_printf("# Speckle created\n");
+    ENDDBG;
     return 0;
     }
 
 int speckle::init_single(int idseed){
+    STARTDBG;
     //For to be used internally, not needed but for to make
     //the code looks like the Fortran One
     const int npx=npmax, npx2=npx*npx, npu=npxpu,
@@ -487,15 +492,17 @@ int speckle::init_single(int idseed){
     free(ff3);
     free(pvI);
     f18_printf("# Speckle created\n");
+    ENDDBG;
     return 0;
     }
 
 int speckle::init_shell(int idseed){
+    STARTDBG;
     //For to be used internally, not needed but for to make
     //the code looks like the Fortran One
     const int npx=npmax, npx2=npx*npx, npu=npxpu,
         npu2=npxpu*npxpu, ngridvI =1000;
-    
+
     double vmaxradscat =1.0/(2*vDi ),
         deltaR =vlambda*focal /size,
         aver=0.0,
@@ -633,5 +640,6 @@ int speckle::init_shell(int idseed){
     free(ff3);
     free(pvI);
     f18_printf("Speckle created\n");
+    ENDDBG;
     return 0;
     }

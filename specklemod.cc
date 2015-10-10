@@ -1,11 +1,14 @@
 #include "specklemod.h"
 
 speckle::speckle(int argc, char **argv):
+    base_calculator(argc,argv),
     // Internal pointers very important
     thesolver(NULL),
     pointer_init(NULL),
     thehist(NULL),
     // ints
+    start(1),                      
+    end(1),    
     nov(4),
     Nscatterers(10),
     npmax(0),                      // This values are checked for errors
@@ -15,7 +18,7 @@ speckle::speckle(int argc, char **argv):
     xpos(NULL),
  
     // doubles
-    min(0), max(0),
+    min(0.0), max(0.0),
     size(0.11),
     vDi(0.05635245901639344262),
     focal(40.0),
@@ -26,10 +29,8 @@ speckle::speckle(int argc, char **argv):
     rphase(0.0),
     binsize(0.5),
     
-    largc(argc), largv(argv),
     f18(NULL),    
-    fprefix("NULL"),
-    save_dir(""),
+    fprefix("output"),
     continuefile(""),
 
     // bools
@@ -42,9 +43,12 @@ speckle::speckle(int argc, char **argv):
     
     // internal arrays
     A(NULL), Vk(NULL)
+
 {
-    STARTDBG
+    STARTDBG;
     parse();
+
+    // Some calculations after parsed the input.
     npxpu=npmax+1;
     Ntot=npmax*npmax*npmax;
     it=start;
@@ -52,13 +56,9 @@ speckle::speckle(int argc, char **argv):
     dx =size/double(npmax);
     dxi=double(npmax)/size;
 
-    // this is for the prefix and save dir for outputs
-    if (save_dir!="") {
-        int created=mkdir(save_dir.c_str(),0777);
-        if (created==0) printf("Process %d created dir %s\n",rank,save_dir.c_str());
-        save_dir+="/";
-        }
-    if(fprefix=="NULL") fprefix="";   //prefix for output will beempty in this case
+    // This is the common name for the outputs, extension and
+    // prefix can be added but this should not be modified.
+    filename=fprefix+"_"+speckletype+"_"+timestr;
     
     //Set the speckle type to use
     if(speckletype=="spherical") pointer_init=&speckle::init_spherical;
@@ -70,12 +70,52 @@ speckle::speckle(int argc, char **argv):
         fprintf(stderr,"please check the input file or the command line\n");
         exit(EXIT_FAILURE);        
         }
+
+    if(!pointer_init){
+        fprintf(stderr,"Error in assignement of init pointer\n");
+        }
     
-    ENDDBG
+    // Some actions for rank 0 (or serial code have also rank==0)
+    #ifdef DEBUG
+    print();
+    #endif
+
+    // Construct the solver
+    if(solvername=="mkl"){
+        thesolver=new mkl_solver(Ntot,vectors,min,max);
+        }
+    #ifdef UMAGMA
+    else if(solvername=="magma"){
+        thesolver=new magma_solver(Ntot,vectors,min,max,ngpu);
+        }
+    else if(solvername=="magma_2stage"){
+        thesolver=new magma_solver_2stage(Ntot,vectors,min,max,ngpu);
+        }
+    #endif
+    #ifdef UPLASMA
+    else if(solvername=="plasma"){
+        thesolver=new plasma_solver(Ntot,vectors,min,max,ncpu);
+        }
+    #endif
+    else{
+        fprintf(stderr,"Solver=%s is not valid\n",solvername.c_str());
+        fprintf(stderr,"Maybe a compilation time option not set\n");
+        printme();
+        exit(EXIT_FAILURE);
+        }
+    
+    // Check for errors in the solver construction
+    if (!thesolver){
+        fprintf(stderr,"Error creating the solver class\n");
+        printme();
+        exit(EXIT_FAILURE);
+        }
+
+    ENDDBG;
     }
 
 speckle::~speckle(){
-    STARTDBG
+    STARTDBG;
     if(thesolver) delete thesolver;
     if(thehist) delete thehist;
     if(xpos) free(xpos);    
@@ -85,58 +125,26 @@ speckle::~speckle(){
     ENDDBG
     }
 
-
 int speckle::init(int idseed){
     STARTDBG;
-    //After initialized the enviroment check if there is a solver.
-    if (!thesolver){
-        if(solvername=="mkl"){
-            thesolver=new mkl_solver(Ntot,vectors,min,max);
-            }
-        #ifdef UMAGMA
-        else if(solvername=="magma"){
-            thesolver=new magma_solver(Ntot,vectors,min,max,ngpu);
-            }
-        else if(solvername=="magma_2stage"){
-            thesolver=new magma_solver_2stage(Ntot,vectors,min,max,ngpu);
-            }
-        #endif
-        #ifdef UPLASMA
-        else if(solvername=="plasma"){
-            thesolver=new plasma_solver(Ntot,vectors,min,max,ncpu);
-            }
-        #endif
-        else{
-            fprintf(stderr,"Solver=%s is not valid\n",solvername.c_str());
-            fprintf(stderr,"Maybe a compilation time option not set\n");
-            printme();
-            return(-1);
-            }
-        //If error in this line then the problem is above. In some constructor
-        dbg_mem(thesolver);
-        #ifdef DEBUG
-        print();
-        #endif //DEBUG    
-        }
         
     //Allocate VP and xpos just ifthey are NULL  
     if(!VP) dbg_mem((VP=(double*) malloc(npxpu*npxpu*npxpu*sizeof(double))));
     if(!xpos) dbg_mem((xpos=(double*) malloc(npxpu*sizeof(double))));
 
     #ifdef DEBUG
-    if(fprefix!=""){
-        sprintf(outputname,"%s%s%s_%d.out",
-                save_dir.c_str(),fprefix.c_str(),speckletype.c_str(),idseed);
+    char outputname[50];
+    sprintf(outputname,"%s/%s_%d.out",
+            dirname.c_str(),filename.c_str(),idseed);
     
-        f18=fopen(outputname,"a"); dbg_mem(f18);
-        print(f18,'#');
-        fprintf(f18,"# Seed\t %d\n",idseed);
-        }        
-            
+    f18=fopen(outputname,"a"); dbg_mem(f18);
+    print(f18,'#');
+    f18_printf("# Seed\t %d\n",idseed);
     #endif // DEBUG
-
+    
     //execute the init
     (this->*pointer_init)(idseed);
+
     ENDDBG
     return(0);
     }
@@ -217,8 +225,6 @@ int speckle::ftspeckle(){
         }
 
 
-    //    show(x_cmplx,);
-    //This is completly modified way to do this because no mod or extra if are needed
     for(int i=0; i<npx; i++){
         int ni=(npx-i)%npx;
         for(int j=0; j<npx; j++){
@@ -304,17 +310,16 @@ int speckle::defineA(){
     free(vkz);
     free(Vk); Vk=NULL;//Vk is not used anymore and we need memory to diagonalization
     f18_printf("# Matrix A Defined correctly\n");
-    ENDDBG
+    ENDDBG;
     return 0;
     }
 
-
-int speckle::process(int nvalues, double*array){
-    STARTDBG
+int speckle::process_serial(int nvalues, double*array){
+    STARTDBG;
     if(!thehist)
-        thehist=new histogram(this); dbg_mem(thehist);
+        thehist=new histogram(this);
     dbg(thehist->process(nvalues,array));
-    ENDDBG
+    ENDDBG;
     return 0;
     }
 

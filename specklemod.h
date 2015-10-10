@@ -2,37 +2,26 @@
 #define specklemod_h
 
 #include <complex.h>
-#include <stdio.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include <stdlib.h>
-#include "mkl_dfti.h"
-#include <string.h>
-#include <string>
-#include <getopt.h>
 
-#include "auxiliary.h"
+#include "mkl_dfti.h"
 
 #include "base_calculator.h"
 #include "histogram.h"
 
 #include "solver.h"
 #include "mkl_solver.h"
-#include <sys/stat.h>
-
-#define DEFAULT_SOLVER mkl_solver
 
 #ifdef UPLASMA
 #include "plasma_solver.h"
-#undef DEFAULT_SOLVER
-#define DEFAULT_SOLVER plasma_solver
 #endif
 
 #ifdef UMAGMA
 #include "magma_solver.h"
-#undef DEFAULT_SOLVER
-#define DEFAULT_SOLVER magma_solver  //the default is not 2stage version
 #endif
+
+#define frand()((double)rand()/(RAND_MAX)) //random number generator in (0,1)
 
 using namespace std;
 class histogram;
@@ -77,9 +66,19 @@ class speckle: public  base_calculator{
         /// Definition for the A array to be diagonalized.
         int defineA();
 
+        /// Pointer to the #solver class object.
+        /** Possible values are:
+            - #plasma_solver
+            - #magma_solver
+            - #magma_solver_2stage
+            - #mkl_solver */
+        solver* thesolver;
+        
         /// Calculate routine
         /** Makes all the calculations and set the results in the expected 
-            direccions to be processed
+            direccions to be processed. This is the only function that needs
+            to be called intead of #ftspeckle, #init or #defineA. 
+            But the others are publoc to provide more flexibility.
             \param [in] idseed Random number generator seed
             \return The return value should be 0, else an error ocurred.*/
         int calculate(int idseed){
@@ -100,7 +99,7 @@ class speckle: public  base_calculator{
         void print(FILE* ou=stdout,char pre='#');
 
         /// Process function, this needs to be defined is mandatory
-        virtual int process(int nvalues, double* array);
+        int process_serial(int nvalues, double* array);
 
     protected:
         /** \name Init routines
@@ -121,14 +120,6 @@ class speckle: public  base_calculator{
             \return The return value should be 0, else an error ocurred.*/
         int parse();
 
-        /// Pointer to the #solver class object.
-        /** Possible values are:
-            - #plasma_solver
-            - #magma_solver
-            - #magma_solver_2stage
-            - #mkl_solver */
-        solver* thesolver;
-
         /// Pointer to the init function.
         /** Posiible values are:
             - #init_spherical
@@ -136,12 +127,12 @@ class speckle: public  base_calculator{
             - #init_single
             - #init_shell */
         int (speckle::*pointer_init)(int seed);
-
+        
         histogram* thehist;           ///< Pointer to histogram class, constructed
                                       ///< only if process function is called.        
         
         /// Serial version for the getseed routine
-        virtual int getseed(){return( it<=end ? it++ : -1 );}
+        int getseed_serial(){return( it<=end ? it++ : -1 );}
 
         /// fprintf specific for f18 file that saves a speckle data for every seed.
         /** This function guarantees that write process is made only if the file 
@@ -158,14 +149,23 @@ class speckle: public  base_calculator{
                 va_end(args);
                 fflush(f18);
                 }
-            };
+            }
+
+        /** \name Run control variables
+            Run system check needs this variables to start and stop
+            in this implementation a serial for is used, but this can be reimplemented 
+            in the future. */                
+        ///\{
+        int start,                ///< First seed
+            end,                  ///< Last seed
+            it;                   ///< This will be like an iterator for getseed
+        ///\}
         
-        int nov,                ///< Order of interpolation
-            Nscatterers,              ///< Number of scatters
+        int nov,                  ///< Order of interpolation
+            Nscatterers,          ///< Number of scatters
             npmax,
-            npxpu,                    ///< npmax+1, used for backwar compatibility
-            Ntot,                     ///< Dimension for Matrix A
-            it,
+            npxpu,                ///< npmax+1, used for backwar compatibility
+            Ntot,                 ///< Dimension for Matrix A
             save_interval;
         
         double *VP,                   ///< This will have dimmension 3
@@ -178,16 +178,6 @@ class speckle: public  base_calculator{
             vDi, focal, vlambda,
             vDi2, focal2, cofactor, rphase,
             binsize;                  ///< SIze for the bin in the histogram
-
-        int largc;                    ///< Standard input counter
-        char **largv;                 ///< Standard input array
-        FILE* f18;                    ///< Output file pointer.
-
-        string speckletype,           ///< Speckle type name.
-            solvername,               ///< Solver name
-            fprefix,                  ///< Prefix for output, if "null" no output.
-            save_dir,
-            continuefile;             ///< File to restart calculations, will be readed.
         
         /** \name Bool flags
             All are false by default, so should be activated manually.*/
@@ -198,14 +188,22 @@ class speckle: public  base_calculator{
         ///\}
         
     private:
-        
+
         double complex Vintensity;    ///< Intensity value. Variable for fftspeckle.
         double complex *A,            ///< This will have dimension 2
             *Vk;                      ///< This will have dimension 3
 
-        char outputname[50];          ///< Full name for the final file if prefix !null
+                  ///< Full name for the final file if prefix !null
 
+        string speckletype,           ///< Speckle type name.
+            solvername,               ///< Solver name
+            fprefix,                  ///< Prefix for output, if "null" no output.
+            continuefile;             ///< File to restart calculations, will be readed.
+
+        FILE* f18;                    ///< Output file pointer.        
+        
         friend class histogram;
+        
         void use_option(int opt,const char* thearg);
     };
 
