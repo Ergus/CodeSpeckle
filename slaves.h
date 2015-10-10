@@ -152,7 +152,7 @@ class slaves: public speckle{
     
             va_list args;
             va_start(args, format);
-            fprintf(logfile,"[%s] ",buffer);
+            fprintf(logfile,"[ %s %6ld ] ",buffer,lt-rawtime);
             vfprintf(logfile, format, args);
             va_end(args);
             fflush(logfile);

@@ -1,13 +1,17 @@
 #include "plasma_solver.h"
 
 plasma_solver::plasma_solver(int n, bool ovectors,
-                           double omin, double omax):
+                             double omin, double omax, int ncpu):
               solver(n,ovectors,omin,omax),
               uplo(PlasmaLower),
               abstol(-1){
     STARTDBG
     // initialize plasma system
-    PLASMA_Init(0);
+    //omp_set_num_threads(1);
+    //goto_set_num_threads(1);
+    //mkl_set_num_threads(1);
+    
+    PLASMA_Init(ncpu);
     
     jobz = (ovectors?PlasmaVec:PlasmaNoVec);
     range =(min==max?PlasmaAllVec:PlasmaVec);

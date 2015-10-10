@@ -89,7 +89,7 @@ class histogram{
         
     private:
         const double deltaE;
-        int ndeltaE;
+        int ndeltaE, save_interval;
         double EMax;
         int nrealiz;
         double *dos, *sumr, *meanr;

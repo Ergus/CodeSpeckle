@@ -165,7 +165,8 @@ class speckle: public  base_calculator{
             npmax,
             npxpu,                    ///< npmax+1, used for backwar compatibility
             Ntot,                     ///< Dimension for Matrix A
-            it;
+            it,
+            save_interval;
         
         double *VP,                   ///< This will have dimmension 3
             *xpos;                    ///< array for xpos

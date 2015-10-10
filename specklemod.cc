@@ -9,6 +9,7 @@ speckle::speckle(int argc, char **argv):
     nov(4),
     Nscatterers(10),
     npmax(0),                      // This values are checked for errors
+    save_interval(1),
     // double arrays
     VP(NULL),
     xpos(NULL),
@@ -51,6 +52,7 @@ speckle::speckle(int argc, char **argv):
     dx =size/double(npmax);
     dxi=double(npmax)/size;
 
+    // this is for the prefix and save dir for outputs
     if (save_dir!="") {
         int created=mkdir(save_dir.c_str(),0777);
         if (created==0) printf("Process %d created dir %s\n",rank,save_dir.c_str());
@@ -69,32 +71,6 @@ speckle::speckle(int argc, char **argv):
         exit(EXIT_FAILURE);        
         }
     
-    //set the solver to use
-    if(solvername=="mkl"){
-        thesolver=new mkl_solver(Ntot,vectors,min,max);
-        }
-    #ifdef UMAGMA
-    else if(solvername=="magma"){
-        thesolver=new magma_solver(Ntot,vectors,min,max,ngpu);
-        }
-    else if(solvername=="magma_2stage"){
-        thesolver=new magma_solver_2stage(Ntot,vectors,min,max,ngpu);
-        }
-    #endif
-    #ifdef UPLASMA
-    else if(solvername=="plasma"){
-        thesolver=new plasma_solver(Ntot,vectors,min,max);
-        }
-    #endif
-    else{
-        fprintf(stderr,"Solver=%s is not valid\n",solvername.c_str());
-        fprintf(stderr,"Maybe a compilation time option not set\n");
-        printme();
-        exit(EXIT_FAILURE);
-        }
-    #ifdef DEBUG
-    print();
-    #endif //DEBUG
     ENDDBG
     }
 
@@ -111,7 +87,38 @@ speckle::~speckle(){
 
 
 int speckle::init(int idseed){
-    STARTDBG
+    STARTDBG;
+    //After initialized the enviroment check if there is a solver.
+    if (!thesolver){
+        if(solvername=="mkl"){
+            thesolver=new mkl_solver(Ntot,vectors,min,max);
+            }
+        #ifdef UMAGMA
+        else if(solvername=="magma"){
+            thesolver=new magma_solver(Ntot,vectors,min,max,ngpu);
+            }
+        else if(solvername=="magma_2stage"){
+            thesolver=new magma_solver_2stage(Ntot,vectors,min,max,ngpu);
+            }
+        #endif
+        #ifdef UPLASMA
+        else if(solvername=="plasma"){
+            thesolver=new plasma_solver(Ntot,vectors,min,max,ncpu);
+            }
+        #endif
+        else{
+            fprintf(stderr,"Solver=%s is not valid\n",solvername.c_str());
+            fprintf(stderr,"Maybe a compilation time option not set\n");
+            printme();
+            return(-1);
+            }
+        //If error in this line then the problem is above. In some constructor
+        dbg_mem(thesolver);
+        #ifdef DEBUG
+        print();
+        #endif //DEBUG    
+        }
+        
     //Allocate VP and xpos just ifthey are NULL  
     if(!VP) dbg_mem((VP=(double*) malloc(npxpu*npxpu*npxpu*sizeof(double))));
     if(!xpos) dbg_mem((xpos=(double*) malloc(npxpu*sizeof(double))));
@@ -136,7 +143,8 @@ int speckle::init(int idseed){
 
 int speckle::ftspeckle(){
     STARTDBG
-    //In all the cases N1==N2==N3 so the original Ni vars were sustituted by npx
+    // In all the cases N1==N2==N3 so the original Ni vars were sustituted by npx
+    // The variables with a 2 attached means that are the original^2
     const int npx=npmax, npx2=npx*npx, npu=npxpu, npu2=npxpu*npxpu, padx=npx/2+1;
     
     MKL_LONG N[]={ npx, npx, npx};
@@ -154,7 +162,7 @@ int speckle::ftspeckle(){
     if(Vk) free(Vk);
     Vk=(double complex *) malloc(npx*npx2*sizeof(double complex)); dbg_mem(Vk);
 
-    //The next for loop copies the data in the array VP to xreal, but without the extra columns for the boundary conditions
+    // The next for loop copies the data in the array VP to xreal, but without the extra columns for the boundary conditions
     f18_printf("# Initialize data for real-to-complex FFT\n");
     for(int i=0;i<npx;i++){
         for(int j=0;j<npx;j++){

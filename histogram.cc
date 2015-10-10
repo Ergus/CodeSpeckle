@@ -1,7 +1,9 @@
 #include "histogram.h"
 
 histogram::histogram(speckle *outter):
-    deltaE(outter->binsize),nrealiz(0),
+    deltaE(outter->binsize),
+    save_interval(outter->save_interval),
+    nrealiz(0),
     dos(NULL),sumr(NULL),meanr(NULL),nos(NULL),countr(NULL),
     gnuplot(NULL),caller(outter),filename("")
 {
@@ -81,24 +83,26 @@ int histogram::process(const int np,const double *values){
         }
     for(int i=0;i<ndeltaE;i++) dos[i]=((double)nos[i])/nrealiz;
 
-    rewind(f10);
-    fprintf(f10,"#Emax= %lf, deltaE= %lf, nrealiz=%d\n",
-            EMax,deltaE,nrealiz);
-    fprintf(f10,"#n E(n) dos(E) meanr(E) sumr(E) countr(E)\n");
+    if(nrealiz%save_interval==0){
+        rewind(f10);
+        fprintf(f10,"#Emax= %lf, deltaE= %lf, nrealiz=%d\n",
+                EMax,deltaE,nrealiz);
+        fprintf(f10,"#n E(n) dos(E) meanr(E) sumr(E) countr(E)\n");
                     
-    double E=0;
-    for(int i=0;i<ndeltaE;i++){
-        E=(i+1)*deltaE;
-        meanr[i]=(countr[i]==0 ? 0.0 : sumr[i]/countr[i]);
-        fprintf(f10,"%d %lf %lf %lf %lf %d\n",
-                i, E, dos[i], meanr[i], sumr[i], countr[i]);
-        }
-                    
-    fflush(f10);
-    if (gnuplot){
-        printf("plotting process %d\n",caller->rank);
-        fprintf(gnuplot,"plot \"%s\" u 2:5\n",filename.c_str());
-        fflush(gnuplot);
+        double E=0;
+        for(int i=0;i<ndeltaE;i++){
+            E=(i+1)*deltaE;
+            meanr[i]=(countr[i]==0 ? 0.0 : sumr[i]/countr[i]);
+            fprintf(f10,"%d %lf %lf %lf %lf %d\n",
+                    i, E, dos[i], meanr[i], sumr[i], countr[i]);
+            }
+        fflush(f10);
+        
+        if (gnuplot){
+            printf("plotting process %d\n",caller->rank);
+            fprintf(gnuplot,"plot \"%s\" u 2:5\n",filename.c_str());
+            fflush(gnuplot);
+            }
         }
     ENDDBG
     return 0;

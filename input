@@ -14,14 +14,13 @@ vDi2 1.067393002E-14
 focal2 221763636363636.34
 cofactor 1.0
 rphase 0.0
-npmax 25
+npmax 16
 nov 4
 speckletype shell
 solver plasma
 intensity 19.73920880230698+0I  #2*pi^2 as in code
 begin 1
-end 20
+end 2
 gpu 2
-cpu 10
 dir savedir
 #file results  

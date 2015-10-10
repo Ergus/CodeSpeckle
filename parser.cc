@@ -25,10 +25,10 @@ int speckle::parse(){
     {"solver", required_argument, 0, 'S'},   //solver type
     {"file", required_argument, 0, 'o'},     //output_prefix
     {"gpu", required_argument, 0, 'G'},      //ngpu
-    {"cpu", required_argument, 0, 'C'},      //ncpu
     {"restart",required_argument, 0, 'R'},   //continue previous calculations
     {"binsize",required_argument, 0, 'B'},   //histogram binsize
     {"dir",required_argument, 0, 'd'},       //directory for results
+    {"save_interval",required_argument, 0, 'I'},       //directory for results
     
     {"gnuplot", no_argument, 0, 'g'},
     {"rescale", no_argument, 0, 'r'},
@@ -44,7 +44,7 @@ int speckle::parse(){
     int c, option_index = 0, i=0, linenum=0;
     optind=1;    //this is a global variable reseted to restart reading the argumemts; 
 
-    const char optstring[]="N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:C:G:R:d:B:grah";
+    const char optstring[]="N:s:v:V:f:F:l:c:p:P:t:n:i:m:M:b:e:S:o:G:R:d:B:I:grah";
     
     // read all the options
     while((c=getopt_long(largc, largv, optstring,
@@ -142,7 +142,8 @@ void speckle::print(FILE* ou,char pre){
     fprintf(ou,"%c binsize    \t %lg\n",pre,binsize);
 
     fprintf(ou,"%c ngpu       \t %d\n",pre,ngpu);
-    fprintf(ou,"%c ncpu       \t %d\n",pre,ncpu);    
+    fprintf(ou,"%c ncpu       \t %d\n",pre,ncpu);
+    fprintf(ou,"%c save_interv\t %d\n",pre,save_interval);
     
     fprintf(ou,"%c begin      \t %d\n",pre,start);
     fprintf(ou,"%c end        \t %d\n",pre,end);
@@ -177,11 +178,11 @@ void speckle::use_option(int opt,const char* thearg){
         case 'b': start=atoi(thearg); break;
         case 'e': end=atoi(thearg); break;
         case 'G': ngpu=atoi(thearg); break;
-        case 'C': ncpu=atoi(thearg); break;
         case 'S': solvername=thearg; break;
         case 'o': fprefix=thearg; break;
         case 'R': continuefile=thearg; break;  
         case 'B': binsize=atof(thearg); break;
+        case 'I': save_interval=atoi(thearg); break;
         case 'd': save_dir=thearg; break;
             
         case 'i':
