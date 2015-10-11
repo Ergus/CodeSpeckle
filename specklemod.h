@@ -73,6 +73,11 @@ class speckle: public  base_calculator{
             - #magma_solver_2stage
             - #mkl_solver */
         solver* thesolver;
+
+        /// This is correlation speckle a function to test.
+        /** This function should be used during developing time to test the
+            potential and other properties.*/
+        int correlationspeckle(int idseed)
         
         /// Calculate routine
         /** Makes all the calculations and set the results in the expected 
@@ -100,6 +105,8 @@ class speckle: public  base_calculator{
 
         /// Process function, this needs to be defined is mandatory
         int process_serial(int nvalues, double* array);
+
+        inline double bessj1(double);
 
     protected:
         /** \name Init routines
