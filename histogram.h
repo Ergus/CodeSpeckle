@@ -37,16 +37,7 @@ class histogram{
 
         /// Histogram class destructor
         /** Frees the memory and close the files. */
-        ~histogram(){
-            free(nos);
-            free(countr);            
-            free(dos);
-            free(sumr);
-            free(meanr);
-                    
-            fclose(f10);
-            if(gnuplot) pclose(gnuplot);
-            }
+        ~histogram();
 
         /// Process routine for colect data in the histograms
         /** \param np [in] Number of elements to process
@@ -57,35 +48,15 @@ class histogram{
             and rewind every time. */
         int process(const int np,const double *values);
 
-        /// This function reads a prefix_values.dat
-        int load_previous(const char *filename){
-            STARTDBG
-            FILE *fp=fopen(filename,"r");
-            if (!fp){
-                fprintf(stderr,"Impossible import file %s to continue calculations\n",
-                        filename);
-                return -1;
-                }
-            char ignore[1024];
-            fgets(ignore, sizeof(ignore), fp);  //ignore first 2 lines
-            fgets(ignore, sizeof(ignore), fp);
-            //start parsing
-            for(int i=0;i<ndeltaE;i++){
-                int matched=fscanf(fp,"%*d %*f %lf %lf %lf %d",
-                                   &dos[i], &meanr[i], &sumr[i], &countr[i]);
+        /// This function load a previous values file if the option -R is specified
+        /** The constructor checks if the variable continue file is not "" and 
+            then call this routine*/
+        int load_previous(const char *filename);
 
-                // an error exit the program because some
-                // values maybe were modified.
-                if (matched<4){  
-                    fprintf(stderr,"Error importing file %s line %d\n",
-                            filename,i+2);
-                    exit(EXIT_FAILURE);
-                    }
-                }
-            fclose(fp);
-            ENDDBG;
-            return(0);
-            }
+        /// This function write the results to the file of results.
+        /** The function is called every #save_interval and at the end before 
+            to close the file in the destructor.*/
+        int write_values();
         
     private:
         const double deltaE;

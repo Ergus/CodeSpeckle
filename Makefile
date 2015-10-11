@@ -116,10 +116,10 @@ else
 endif
 
 
-$(FILE_MPI): main.cc specklemod.cc base_calculator.cc $(LIBS)
+$(FILE_MPI): main.cc base_calculator.cc specklemod.cc $(LIBS)
 	$(MPICXX) $(CXXFLAGS) $(FLAGS) $^ -o $@ $(THELIBS)
 
-$(FILE): main.cc specklemod.cc base_calculator.cc $(LIBS)
+$(FILE): main.cc base_calculator.cc specklemod.cc $(LIBS)
 	$(CXX) $(CXXFLAGS) $(FLAGS) $^ -o $@ $(THELIBS)
 
 %.o: %.cc

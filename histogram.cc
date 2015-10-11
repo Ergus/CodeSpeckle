@@ -7,7 +7,7 @@ histogram::histogram(speckle *outter):
     dos(NULL),sumr(NULL),meanr(NULL),nos(NULL),countr(NULL),
     gnuplot(NULL),caller(outter),filename("")
 {
-    STARTDBG
+    STARTDBG;
     const double tmp =2.0*M_PI/outter->size;
     const double tmp2=outter->npmax/2.0;
     EMax=3.*tmp*tmp*tmp2*tmp2+5.0*creal(outter->Vintensity);
@@ -20,12 +20,6 @@ histogram::histogram(speckle *outter):
     dos=(double*) calloc(ndeltaE,sizeof(double));
     sumr=(double*) calloc(ndeltaE,sizeof(double));
     meanr=(double*) calloc(ndeltaE,sizeof(double));
-    // check if everything was fine
-    if(!(nos && countr && dos && sumr && meanr)){
-        fprintf(stderr,"Error in histogram constructer\n");
-        printme();
-        exit(EXIT_FAILURE);
-        }
 
     // this is to define the new output only, this can change easily
     filename=caller->dirname+"/"+caller->filename+"_values.dat";
@@ -55,11 +49,53 @@ histogram::histogram(speckle *outter):
             }
         }
     
-    ENDDBG
+    ENDDBG;
+    }
+
+histogram::~histogram(){
+    caller->log_printf("Saving values at the end\n");
+    write_values();
+    free(nos);
+    free(countr);            
+    free(dos);
+    free(sumr);
+    free(meanr);
+                    
+    fclose(f10);
+    if(gnuplot) pclose(gnuplot);
+    }
+
+int histogram::load_previous(const char *filename){
+    STARTDBG;
+        FILE *fp=fopen(filename,"r");
+    if (!fp){
+        fprintf(stderr,"Impossible import file %s to continue calculations\n",
+                filename);
+        return -1;
+        }
+    char ignore[1024];
+    fgets(ignore, sizeof(ignore), fp);  //ignore first 2 lines
+    fgets(ignore, sizeof(ignore), fp);
+    //start parsing
+    for(int i=0;i<ndeltaE;i++){
+        int matched=fscanf(fp,"%*d %*f %lf %lf %lf %d",
+                           &dos[i], &meanr[i], &sumr[i], &countr[i]);
+
+        // an error exit the program because some
+        // values maybe were modified.
+        if (matched<4){  
+            fprintf(stderr,"Error importing file %s line %d\n",
+                    filename,i+2);
+            exit(EXIT_FAILURE);
+            }
+        }
+    fclose(fp);
+    ENDDBG;
+    return(0);
     }
 
 int histogram::process(const int np,const double *values){
-    STARTDBG
+    STARTDBG;
     nrealiz++;
 
     double diffeigen, diffeigen_p;
@@ -88,26 +124,35 @@ int histogram::process(const int np,const double *values){
     for(int i=0;i<ndeltaE;i++) dos[i]=((double)nos[i])/nrealiz;
 
     if(nrealiz%save_interval==0){
-        rewind(f10);
-        fprintf(f10,"#Emax= %lf, deltaE= %lf, nrealiz=%d\n",
-                EMax,deltaE,nrealiz);
-        fprintf(f10,"#n E(n) dos(E) meanr(E) sumr(E) countr(E)\n");
-                    
-        double E=0;
-        for(int i=0;i<ndeltaE;i++){
-            E=(i+1)*deltaE;
-            meanr[i]=(countr[i]==0 ? 0.0 : sumr[i]/countr[i]);
-            fprintf(f10,"%d %lf %lf %lf %lf %d\n",
-                    i, E, dos[i], meanr[i], sumr[i], countr[i]);
-            }
-        fflush(f10);
-        
-        if (gnuplot){
-            printf("plotting process %d\n",caller->rank);
-            fprintf(gnuplot,"plot \"%s\" u 2:5\n",filename.c_str());
-            fflush(gnuplot);
-            }
+        caller->log_printf("Saving values nrealiz=%d\n",nrealiz);
+        write_values();
         }
-    ENDDBG
+
+    ENDDBG;
+    return 0;
+    }
+
+int histogram::write_values(){
+    STARTDBG;
+    rewind(f10);
+    fprintf(f10,"#Emax= %lf, deltaE= %lf, nrealiz=%d\n",
+            EMax,deltaE,nrealiz);
+    fprintf(f10,"#n E(n) dos(E) meanr(E) sumr(E) countr(E)\n");
+                    
+    double E=0;
+    for(int i=0;i<ndeltaE;i++){
+        E=(i+1)*deltaE;
+        meanr[i]=(countr[i]==0 ? 0.0 : sumr[i]/countr[i]);
+        fprintf(f10,"%d %lf %lf %lf %lf %d\n",
+                i, E, dos[i], meanr[i], sumr[i], countr[i]);
+        }
+    fflush(f10);
+        
+    if (gnuplot){
+        printf("plotting process %d\n",caller->rank);
+        fprintf(gnuplot,"plot \"%s\" u 2:5\n",filename.c_str());
+        fflush(gnuplot);
+        }
+    ENDDBG;
     return 0;
     }

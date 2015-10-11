@@ -36,6 +36,7 @@ Command line parameters overwrite a parameter if also specified in the command l
     -B, --binsize <double>: default 0.5. Size for the bin in the histogram.
     -R, --restart <string>: default "". A *values.dat file to reload and continue a previous calculation. Please be carefull with the seeds to prevent repetitions and the input file should be the same. The program automatically will not take care of that. To know the last seed used in the file read the corresponding logfile.
     -g, --gnuplot: no parameter. Activates the dynamic gnuplot graph construction. Use this option for test purposes only.
+    -I, --save_interval <int>: default 1. Interval to save the results and write to a file. Defines every how many realizations the values file should be updated. This is an optimization option, and the recomended values is to use a value as big as possible. The file will be written any before the end, but you should conssider the walltime, in that case the application is interrupted and no final save is made.
 
     Run parameters:
     -b, --begin <int>: default 1

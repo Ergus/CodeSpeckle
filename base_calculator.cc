@@ -63,7 +63,7 @@ base_calculator::~base_calculator(){
     }
 
 int base_calculator::initialize(){
-    
+    STARTDBG;
     if(rank==0){
         // Prepare memory for master
         seeds=new int[wsize](); dbg_mem(seeds);
@@ -83,25 +83,9 @@ int base_calculator::initialize(){
         log_printf("Logfile for %s version of speckle code\n",VERSION);
         
         print(logfile);
-        }        
+        }
+    ENDDBG;
     return 0;
-    }
-
-void base_calculator::log_printf(const char * format, ... ){
-    pthread_mutex_lock(&mutex3);
-    time_t lt;
-    char buffer[80];
-    time (&lt);
-    struct tm * timeinfo = localtime(&lt);
-    strftime(buffer,80,"%a %d/%m/%y %X",timeinfo);
-    
-    va_list args;
-    va_start(args, format);
-    fprintf(logfile,"[ %s %6ld ] ",buffer,lt-rawtime);
-    vfprintf(logfile, format, args);
-    va_end(args);
-    fflush(logfile);
-    pthread_mutex_unlock(&mutex3);
     }
 
 void base_calculator::run(){

@@ -137,7 +137,23 @@ class base_calculator{
             always the time of the event.
             Only the master process will save information in the log file.
             The arguments are the same than printf. */
-        inline void log_printf(const char * format, ... );
+        void log_printf(const char * format, ... ){
+            pthread_mutex_lock(&mutex3);
+            time_t lt;
+            char buffer[80];
+            time (&lt);
+            struct tm * timeinfo = localtime(&lt);
+            strftime(buffer,80,"%a %d/%m/%y %X",timeinfo);
+    
+            va_list args;
+            va_start(args, format);
+            fprintf(logfile,"[ %s %6ld ] ",buffer,lt-rawtime);
+            vfprintf(logfile, format, args);
+            va_end(args);
+            fflush(logfile);
+            pthread_mutex_unlock(&mutex3);
+            }
+        
 
         /// Print the values that will be used in this class.
         /** \param [in,out] ou to print, default standard output
