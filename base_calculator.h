@@ -29,21 +29,6 @@
 //This is a debbuger macro for fft functions that needs to
 //return 0 each speckle will print its own error message before interrupt
 
-#ifndef printme
-#ifdef UMPI
-#define printme() {                                                  \
-        fprintf(stderr,"%s in %s:%d (process %s in %s)\n",           \
-                __PRETTY_FUNCTION__, __FILE__, __LINE__,             \
-                getenv("OMPI_COMM_WORLD_RANK"), getenv("HOSTNAME")); \
-        }
-#else  //MPI_VERSION
-#define printme() {                                        \
-        fprintf(stderr,"%s in %s:%d\n",                    \
-                __PRETTY_FUNCTION__, __FILE__, __LINE__);  \
-        }
-#endif //MPI_VERSION
-#endif // printme
-
 #ifndef dbg
 #define dbg(x) {                                                           \
         if(x!=0){                                                          \

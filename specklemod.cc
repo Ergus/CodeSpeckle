@@ -42,7 +42,8 @@ speckle::speckle(int argc, char **argv):
     Vintensity(2.0*M_PI*M_PI),
     
     // internal arrays
-    A(NULL), Vk(NULL)
+    A(NULL), Vk(NULL),
+    last_seed(0)
 
 {
     STARTDBG;
@@ -326,42 +327,47 @@ int speckle::process_serial(int nvalues, double*array){
 
 
 int speckle::correlationspeckle(int idseed){
-
+    STARTDBG;
     srand(idseed); //Seed for random number generator
     
     const int Npart=150000,
-              npartmax=200000,
               sizedouble=sizeof(double),
-              sizeint=sizeof(int);
+        sizeint=sizeof(int);
     
-    double *atau3    =(double*) calloc(npmax,sizedouble); dbg_mem(atau3);
-    double *atau3xy  =(double*) calloc(npmax,sizedouble); dbg_mem(atau3xy);
-    double *atau3z   =(double*) calloc(npmax,sizedouble); dbg_mem(atau3z);
-    double *atau3sq  =(double*) calloc(npmax,sizedouble); dbg_mem(atau3sq);
-    double *atau3xysq=(double*) calloc(npmax,sizedouble); dbg_mem(atau3xysq);
-    double *atau3zsq =(double*) calloc(npmax,sizedouble); dbg_mem(atau3zsq);
+    int nthreads=1;  //this is a better approximation fot the best performance with omp    
+    #ifdef _OPENMP
+    nthreads=ncpu*0.8;    
+    #endif // _OPENMP
     
-    int *intau  =(int*) calloc(npmax,sizeint); dbg_mem(intau);
-    int *intauxy=(int*) calloc(npmax,sizeint); dbg_mem(intauxy);
-    int *intauz =(int*) calloc(npmax,sizeint); dbg_mem(intauz);
-    int *np     =(int*) calloc(3*npartmax,sizeint); dbg_mem(np);
+    double *atau3    =(double*) calloc(nthreads*npmax,sizedouble); dbg_mem(atau3);
+    double *atau3xy  =(double*) calloc(nthreads*npmax,sizedouble); dbg_mem(atau3xy);
+    double *atau3z   =(double*) calloc(nthreads*npmax,sizedouble); dbg_mem(atau3z);
+    double *atau3sq  =(double*) calloc(nthreads*npmax,sizedouble); dbg_mem(atau3sq);
+    double *atau3xysq=(double*) calloc(nthreads*npmax,sizedouble); dbg_mem(atau3xysq);
+    double *atau3zsq =(double*) calloc(nthreads*npmax,sizedouble); dbg_mem(atau3zsq);
     
-    const double vme=1.0;
-
-    const double size2=size*size, size2o4=0.25*size*size, stepcorfun = size/4000.;
+    int *intau  =(int*) calloc(nthreads*npmax,sizeint); dbg_mem(intau);
+    int *intauxy=(int*) calloc(nthreads*npmax,sizeint); dbg_mem(intauxy);
+    int *intauz =(int*) calloc(nthreads*npmax,sizeint); dbg_mem(intauz);
+    int *np     =(int*) calloc(3*Npart,sizeint); dbg_mem(np);
+    
+    const double size2=size*size, size2o4=0.25*size*size,
+        stepcorfun = size/4000.0, vme=1.0;
     const int npx=npmax, npxo2=npmax/2, npxpu2=npxpu*npxpu;
 
     f18_printf("Computing Correlations\n");
 
-    char namef13[50], namef19[50];
-    sprintf(namef13,"%s/specklecorr3D_%s_%d.dat",
-            dirname,filename,idseed);
-    sprintf(namef19,"%s/specklecorfunanal3D_%s_%d.dat",
-            dirname,filename,idseed);
-    
-    FILE *f13=fopen(namef13,"w");
-    FILE *f19=fopen(namef19,"w");
+    char namef13[512], namef19[512];
+    sprintf(namef13,"%s/corr3d_%s_%d.dat",
+            dirname.c_str(),filename.c_str(),idseed);
+    sprintf(namef19,"%s/corfunanal3D_%s_%d.dat",
+            dirname.c_str(),filename.c_str(),idseed);
 
+    f18_printf("f13= %s\nf19= %s\n",namef13,namef19);
+
+    FILE *f13=fopen(namef13,"w"); dbg_mem(f13);    
+    FILE *f19=fopen(namef19,"w"); dbg_mem(f19);
+    
     for(int i=0;i<Npart;i++){
         np[i*3  ]=(int)(frand()*size/dx);  //Here I didn't add 1 cause of the C indices
         np[i*3+1]=(int)(frand()*size/dx);
@@ -369,16 +375,23 @@ int speckle::correlationspeckle(int idseed){
         }
     
     //i start in 1 because if i=j=0 nothing is made
+    #pragma omp parallel num_threads(nthreads)
+    {
+    const int ithread = omp_get_thread_num();
+    #ifdef DEBUG
+    printf("Running correlation thread: %d process %d\n",ithread,rank);
+    #endif // DEBUG
+    #pragma omp for
     for(int i=0;i<Npart;i++){
         //double rx,ry,rz,rr,rxy;
         //int iabsiz;// ir;// iz;
         for(int j=0;j<i;j++){
-            double rx=dx*(np[i*3  ]-np[j*3  ]);
-            double ry=dx*(np[i*3+1]-np[j*3+1]);
+            const double rx=dx*(np[i*3  ]-np[j*3  ]);
+            const double ry=dx*(np[i*3+1]-np[j*3+1]);
 
             //is different because the int var is needed later
-            int iz=np[i*3+2]-np[j*3+2];   
-            double rz=dx*(iz);
+            const int iz=np[i*3+2]-np[j*3+2];   
+            const double rz=dx*(iz);
             const double tmp1=VP[ np[j*3+2]*npxpu2+
                                   np[j*3+1]*npxpu +
                                   np[j*3  ]        ] - vme;
@@ -388,39 +401,59 @@ int speckle::correlationspeckle(int idseed){
             const int iabsiz=abs(iz);
 
             if(rr<size2o4){
-                const int ir=(int)(sqrt(rr)/dx);                
+                const int ir=(int)(sqrt(rr)*dxi);
                 const double tmp2=VP[ np[i*3+2]*npxpu2+
                                       np[i*3+1]*npxpu +
                                       np[i*3  ]        ] - vme;                
                 const double add = tmp1*tmp2;
-                atau3[ir] += add;
-                atau3sq[ir] += (add*add);
-                intau[ir]++;
+                
+                atau3[ithread*npmax+ir] += add;
+                atau3sq[ithread*npmax+ir] += (add*add);
+                intau[ithread*npmax+ir]++;
                 }
             if(rxy<size2o4){
-                const int ir=(int)(sqrt(rxy)/dx);                
+                const int ir=(int)(sqrt(rxy)*dxi);                
                 const double tmp2=VP[ np[j*3+2]*npxpu2+
                                       np[i*3+1]*npxpu +
                                       np[i*3  ]        ] - vme;                
                 const double add = tmp1*tmp2;                
-                atau3xy[ir] += add;
-                atau3xysq[ir] += add2;
-                intauxy[ir]++;
+                atau3xy[ithread*npmax+ir] += add;
+                atau3xysq[ithread*npmax+ir] += (add*add);
+                intauxy[ithread*npmax+ir]++;
                 }
             if(iabsiz<npxo2){
-                const int ir=(iz>0:iz:-iz);
+                const int ir=(iz>0?iz:-iz);
                 const double tmp2=VP[ np[i*3+2]*npxpu2+
                                       np[j*3+1]*npxpu +
                                       np[j*3  ]        ] - vme;
                 
                 const double add = tmp1*tmp2;                                
-                atau3z[ir]+=add;
-                atau3zsq[ir]+=add2;
-                intauz[ir]++;
+                atau3z[ithread*npmax+ir]+=add;
+                atau3zsq[ithread*npmax+ir]+=(add*add);
+                intauz[ithread*npmax+ir]++;
                 }//end if
             }//end for
         }//end for
+    //This is a reduction for the values before
+    #ifdef _OPENMP
+    #pragma omp for
+    for(int i=0;i<npmax;i++){
+        for(int j=1;j<nthreads;j++){
+            atau3[i] += atau3[j*npmax+i] ;
+            atau3sq[i] += atau3sq[j*npmax+i];
+            intau[i] += intau[j*npmax+i] ;
 
+            atau3xy[i] += atau3xy[j*npmax+i];
+            atau3xysq[i] += atau3xysq[j*npmax+i];
+            intauxy[i] += intauxy[j*npmax+i];
+
+            atau3z[i]+=atau3z[j*npmax+i];
+            atau3zsq[i]+=atau3zsq[j*npmax+i];
+            intauz[i]+=intauz[j*npmax+i];     
+            }
+        }
+    #endif // _OPENMP                     
+        }// end openMP
     for(int i=0;i<=npxo2;i++){
         double val  =0.0, verr  =0.0, valxy=0.0, verrxy=0.0,
                valz =0.0, verrz =0.0, val2, vsq;
@@ -445,7 +478,7 @@ int speckle::correlationspeckle(int idseed){
             vsq=atau3zsq[i]/intauz[i];
             verrz=(vsq-val2)/sqrt((double)(intauz[i]));
             }
-        fprintf(f13,"%lf\t %lf\t %lf\t %lf\t %lf\t %lf\t %lf\n",
+        fprintf(f13,"%lf %lf %lf %lf %lf %lf %lf\n",
                       ((double)i+0.5)*dx,val,verr,valxy,verrxy,valz,verrz);
         }//end for
 
@@ -482,6 +515,35 @@ int speckle::correlationspeckle(int idseed){
     return 0;
     }
 
+
+int speckle::writespeckle(){
+    STARTDBG;
+
+    if(!xpos || !VP){
+        fprintf(stderr,"Error xpos and VP not initialized\n");
+        printme();
+        return -1;
+        }
+    
+    char namef14[512];
+    sprintf(namef14,"%s/speckle3d_%s_%d.dat",
+            dirname.c_str(),filename.c_str(),last_seed);
+
+    FILE *f14=fopen(namef14,"w"); dbg_mem(f14);
+    const int npu=npxpu, npu2=npxpu*npxpu;
+    
+    for(int i=0;i<npxpu;i++){
+        for(int j=0;j<npxpu;j++){
+            for(int k=0;k<npxpu;k++){
+                fprintf(f14,"%lf %lf %lf %lf\n",
+                        xpos[k],xpos[j],xpos[i],VP[i*npu2+j*npu+k]);
+                }        
+            }        
+        }
+    fclose(f14);
+    ENDDBG;
+    return 0;
+    }
 
 inline double speckle::bessj1(double x){
     STARTDBG;

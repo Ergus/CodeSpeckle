@@ -88,7 +88,7 @@ endif
 CXXFLAGS += $(MACROS)
 #-----------------------------------------------
 # to compile everything ones
-debug: CXXFLAGS = -O0 -DDEBUG -g -Wall -DUNIX $(MACROS)
+debug: CXXFLAGS = -O0 -DDEBUG -g -Wall -DUNIX $(MACROS) -openmp
 
 debug_mpi: CXXFLAGS = -O0 -DDEBUG -g -Wall -DUNIX $(MACROS)
 

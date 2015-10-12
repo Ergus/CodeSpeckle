@@ -21,6 +21,13 @@
 #include "magma_solver.h"
 #endif
 
+#ifdef _OPENMP
+#include <omp.h>
+#else
+#define omp_get_thread_num() 0
+#endif
+
+
 #define frand()((double)rand()/(RAND_MAX)) //random number generator in (0,1)
 
 using namespace std;
@@ -77,7 +84,7 @@ class speckle: public  base_calculator{
         /// This is correlation speckle a function to test.
         /** This function should be used during developing time to test the
             potential and other properties.*/
-        int correlationspeckle(int idseed)
+        int correlationspeckle(int idseed);
         
         /// Calculate routine
         /** Makes all the calculations and set the results in the expected 
@@ -87,14 +94,17 @@ class speckle: public  base_calculator{
             \param [in] idseed Random number generator seed
             \return The return value should be 0, else an error ocurred.*/
         int calculate(int idseed){
-            STARTDBG
+            STARTDBG;
+            last_seed=idseed;  //remember the last seed just to prevent errors
             dbg(init(idseed));
+            dbg(writespeckle());
+            //            dbg(correlationspeckle(idseed+1));
             dbg(ftspeckle());
             dbg(defineA());
             dbg(thesolver->solve(A));
             indices=thesolver->get_m();
             values=thesolver->get_w();
-            ENDDBG
+            ENDDBG;
             return 0;
             }        
 
@@ -106,7 +116,16 @@ class speckle: public  base_calculator{
         /// Process function, this needs to be defined is mandatory
         int process_serial(int nvalues, double* array);
 
+        /// This function is a bessel polinomial approximation order 1
+        /** This is needed in the correlation routine but can be called 
+            from everywhere. It was included here to avoid the creation of
+            extra files.*/
         inline double bessj1(double);
+
+        /// This function writes the speckle to a file.
+        /** The filename depends of the seed used for the creation of the speckle, 
+            to prevent errors.*/
+        int writespeckle();
 
     protected:
         /** \name Init routines
@@ -208,6 +227,8 @@ class speckle: public  base_calculator{
             continuefile;             ///< File to restart calculations, will be readed.
 
         FILE* f18;                    ///< Output file pointer.        
+
+        int last_seed;
         
         friend class histogram;
         
