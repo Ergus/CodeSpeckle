@@ -93,20 +93,7 @@ class speckle: public  base_calculator{
             But the others are publoc to provide more flexibility.
             \param [in] idseed Random number generator seed
             \return The return value should be 0, else an error ocurred.*/
-        int calculate(int idseed){
-            STARTDBG;
-            last_seed=idseed;  //remember the last seed just to prevent errors
-            dbg(init(idseed));
-            dbg(writespeckle());
-            //            dbg(correlationspeckle(idseed+1));
-            dbg(ftspeckle());
-            dbg(defineA());
-            dbg(thesolver->solve(A));
-            indices=thesolver->get_m();
-            values=thesolver->get_w();
-            ENDDBG;
-            return 0;
-            }        
+        int calculate(int idseed);
 
         /// Print the values that will be used in this speckle.
         /** \param [in,out] ou to print, default standard output
@@ -163,11 +150,10 @@ class speckle: public  base_calculator{
         /// fprintf specific for f18 file that saves a speckle data for every seed.
         /** This function guarantees that write process is made only if the file 
             is open.
-            The FILE objects f18 is null by default, but if prefix is specified 
-            in command line or input file then it is created as 
-            prefix_speckletype_seed.out. Define a prefix only for debugging purposes, 
-            it will be faster.*/
+            The FILE objects f18 is null in release mode, but in debug mode
+            it is created as dirname/prefix_speckletype_seed.out. */
         void f18_printf(const char * format, ... ){
+            #ifdef DEBUG
             if(f18){
                 va_list args;
                 va_start(args, format);
@@ -175,6 +161,11 @@ class speckle: public  base_calculator{
                 va_end(args);
                 fflush(f18);
                 }
+            else{
+                fprintf(stderr,"Error: f18 is NULL\n");
+                printme();
+                }
+            #endif
             }
 
         /** \name Run control variables
@@ -226,7 +217,7 @@ class speckle: public  base_calculator{
             fprefix,                  ///< Prefix for output, if "null" no output.
             continuefile;             ///< File to restart calculations, will be readed.
 
-        FILE* f18;                    ///< Output file pointer.        
+        FILE* f18;                    ///< Output file pointer in debug mode
 
         int last_seed;
         

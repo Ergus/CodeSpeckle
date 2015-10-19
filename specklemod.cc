@@ -130,21 +130,11 @@ int speckle::init(int idseed){
     STARTDBG;
         
     //Allocate VP and xpos just ifthey are NULL  
-    if(!VP) dbg_mem((VP=(double*) malloc(npxpu*npxpu*npxpu*sizeof(double))));
-    if(!xpos) dbg_mem((xpos=(double*) malloc(npxpu*sizeof(double))));
-
-    #ifdef DEBUG
-    char outputname[50];
-    sprintf(outputname,"%s/%s_%d.out",
-            dirname.c_str(),filename.c_str(),idseed);
-    
-    f18=fopen(outputname,"a"); dbg_mem(f18);
-    print(f18,'#');
-    f18_printf("# Seed\t %d\n",idseed);
-    #endif // DEBUG
+    if(!VP) VP=(double*) malloc(npxpu*npxpu*npxpu*sizeof(double)); dbg_mem(VP);
+    if(!xpos) xpos=(double*) malloc(npxpu*sizeof(double)); dbg_mem(xpos);
     
     //execute the init
-    (this->*pointer_init)(idseed);
+    dbg((this->*pointer_init)(idseed));
 
     ENDDBG
     return(0);
@@ -249,7 +239,7 @@ int speckle::ftspeckle(){
 
 int speckle::defineA(){
     STARTDBG
-    double deltaT=(2.0*M_PI/size);
+    double deltaT=(2.0*M_PI/size)*(2.0*M_PI/size);
     const int npx=npmax, npx2=npmax*npmax;    
 
     f18_printf("# The dimension of the matrix is %d\n", Ntot);
@@ -325,6 +315,34 @@ int speckle::process_serial(int nvalues, double*array){
     }
 
 
+int speckle::calculate(int idseed){
+    STARTDBG;
+    last_seed=idseed;  //remember the last seed just to prevent errors
+    
+    #ifdef DEBUG  //This information is saved nly in debug mode
+    char outputname[50];
+    sprintf(outputname,"%s/%s_%d.out",
+            dirname.c_str(),filename.c_str(),idseed);
+    
+    f18=fopen(outputname,"a"); dbg_mem(f18);
+    print(f18,'#');
+    f18_printf("# Seed\t %d\n",idseed);
+    #endif // DEBUG
+    
+    dbg(init(idseed));
+    //dbg(writespeckle());
+    //dbg(correlationspeckle(idseed+1));
+    dbg(ftspeckle());
+    dbg(defineA());
+    dbg(thesolver->solve(A));
+    indices=thesolver->get_m();
+    values=thesolver->get_w();
+    #ifdef DEBUG
+    fclose(f18); f18=NULL;
+    #endif
+    ENDDBG;
+    return 0;
+    }        
 
 int speckle::correlationspeckle(int idseed){
     STARTDBG;
@@ -537,8 +555,9 @@ int speckle::writespeckle(){
             for(int k=0;k<npxpu;k++){
                 fprintf(f14,"%lf %lf %lf %lf\n",
                         xpos[k],xpos[j],xpos[i],VP[i*npu2+j*npu+k]);
-                }        
-            }        
+                }
+            fprintf(f14,"\n\n");
+            }
         }
     fclose(f14);
     ENDDBG;
