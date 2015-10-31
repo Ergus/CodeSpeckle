@@ -27,7 +27,7 @@ Command line parameters overwrite a parameter if also specified in the command l
     -i, --intensity <real+imaginary[iI]>: no spaces allowed format is like 12.34+5.678I or 12.34-5.678I, 12.34+5.678i
     
     -r, --rescale: no parameter needed, assumed false if not specified.
-    -S, --solver <string>: Possible values are "mkl", "plasma", "magma".
+    -S, --solver <string>: Possible values are "mkl", "plasma", "magma" and "magma_2stage".
     -t, --speckletype <string>: no default value (Mandatory) possible values are: "spherical", "sum2", "single" and "shell". Any other value will stop in error.
     -a, --vectors: No parameter assumed false only is specified
 

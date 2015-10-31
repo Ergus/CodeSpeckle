@@ -7,7 +7,7 @@
 SHELL := /bin/bash
 
 CXX = g++
-CXXFLAGS = -O2 -lpthread -openmp
+CXXFLAGS = -O2 -lpthread -fopenmp
 
 # Default flags for gcc (is is not working yet)
 GCC_MKLFLAGS=
@@ -23,6 +23,7 @@ MPI_RESULT := $(shell which icpc 2> /dev/null)
 MPI_TEST := $(notdir $(MPI_RESULT))
 ifeq ($(MPI_TEST),icpc)
  CXX=icpc
+ CXXFLAGS = -O2 -pthread -openmp
 endif
 
 # Look for mpi
@@ -39,8 +40,10 @@ endif
 ifdef MKLROOT
 # Flags for MKL
 MACROS = -DUMKL
+MKLFLAGS = -I$(MKLROOT)/include 
 ifeq ($(CXX),icpc)
- MKLFLAGS = -I$(MKLROOT)/include 
+  THELIBS += -L$(MKLROOT)/lib/intel64/ -mkl=parallel -lpthread
+else
  THELIBS += -L$(MKLROOT)/lib/intel64/ -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5
 endif
 FLAGS = $(MKLFLAGS)

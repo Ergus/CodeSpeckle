@@ -43,17 +43,21 @@ int mkl_solver::solve(double complex *oA){
         // oV points to oA for this function, the other one is different
         if(jobz=='V') oV=oA;
         
-        info=LAPACKE_zheev(LAPACK_ROW_MAJOR, jobz, uplo, n, hA, n, w);                 
+        info=LAPACKE_zheev(LAPACK_ROW_MAJOR, jobz, uplo, n, hA, n, w);
+        if(info!=0){
+            fprintf(stderr,"Error in mkl zheev call return: info= %d\n",info);
+            printme();
+            return(-1);
+            }                
         }
     else{ //if range=='V'
         info = LAPACKE_zheevr( layout, jobz, range, uplo, n, hA, n,
                                min, max, 0, 0, abstol, &m, w, toV, n, NULL );
-        }
-
-
-    if(info!=0){
-        fprintf(stderr,"Error in mkl zheev[r] call return: info= %d\n",info);
-        return(-1);
+        if(info!=0){
+            fprintf(stderr,"Error in mkl zheevr call return: info= %d\n",info);
+            printme();
+            return(-1);
+            }        
         }
 
     ENDDBG
