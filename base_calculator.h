@@ -113,7 +113,7 @@ class base_calculator{
         /// Run routine, is the manager for all the system
         /** It calls the #process, #getseed and #calculate routines
             that must be implementedin any derived class. */
-        void run();
+        int run();
 
         /// printf function that saves information in the logfile
         /** The losfile name is automatically defined in the constructor of 
@@ -196,7 +196,8 @@ class base_calculator{
             local_rank,               ///< Rank in local node
             local_size;               ///< Number of processes running in local node
         int ngpu,                     ///< GPU number
-            ncpu;                     ///< CPU number/process
+            ncpu,                     ///< CPU number/process
+            start_cpu;                ///< Indef for the first process affinity in this process
         ///\}
 
         /** \name Usefull strings
@@ -230,6 +231,7 @@ class base_calculator{
         pthread_t thread;             ///< Thread will be loaded in the paralell version
         pthread_attr_t attr;          ///< Attribute for thread
         MPI_Status status, status2;   ///< tha status for the mpi processes
+        cpu_set_t cpus;
         #endif
 
         //static members 

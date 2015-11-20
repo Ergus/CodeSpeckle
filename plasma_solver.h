@@ -20,9 +20,12 @@ class plasma_solver:public solver{
         /** \param [in] n dimension to solve
             \param [in] ovectors bool variable that enables eigen vector calculation.
             \param [in] omin lower limit of interesting values
-            \param [in] omax upper limit of interesting values */
+            \param [in] omax upper limit of interesting values
+            \param [in] ncpu number of cored to be used in plasma execution
+            \param [in] start_cpu index for the start core for the process, the default value is zero, but mpi interface needs to set it for a good affinity.*/
         plasma_solver(int n, bool ovectors=false,
-                      double omin=0.0, double omax=0.0, int ncpu=0);
+                      double omin=0.0, double omax=0.0,
+                      int ncpu=0, int start_cpu=0);
         
         /// Destructor for plasma_solver
         ~plasma_solver();
@@ -37,6 +40,7 @@ class plasma_solver:public solver{
         PLASMA_desc *desc;   //workspace
         int info;            
         const double abstol; // tolerance not used in this version of plasma
+        int *coresbind;
     };
 
 

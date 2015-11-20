@@ -7,6 +7,7 @@ base_calculator::base_calculator(int argc, char **argv):
     local_size(1),
     ngpu(0),      // you should set this value in the input file
     ncpu(get_nprocs()),
+    start_cpu(0),  // this is for the affinity
     hostname(getenv("HOSTNAME")),
     filename(""),
     dirname("outputs"),
@@ -24,11 +25,17 @@ base_calculator::base_calculator(int argc, char **argv):
     MPI_Init (&largc, &largv);
     MPI_Comm_size( MPI_COMM_WORLD, &wsize ); 
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
-    
+
+    // Lets rearange the threads for right affinity
     local_rank=atoi(getenv("OMPI_COMM_WORLD_LOCAL_RANK"));
     local_size=atoi(getenv("OMPI_COMM_WORLD_LOCAL_SIZE"));
-    int tmpncpu=ncpu/local_size;
-    ncpu=tmpncpu+(local_rank<(ncpu-tmpncpu*local_size));
+    const int tmp_ncpu=ncpu/local_size;
+    const int tmp_rest=ncpu-local_size*tmp_ncpu;
+    
+    ncpu=tmp_ncpu+(local_rank<tmp_rest?1:0);
+
+    start_cpu=local_rank*tmp_ncpu+(local_rank<tmp_rest?local_rank:tmp_rest);
+    
     if(rank==0) ncpu--; //This is to let a free processor for the thread
     #endif    
     
@@ -88,7 +95,7 @@ int base_calculator::initialize(){
     return 0;
     }
 
-void base_calculator::run(){
+int base_calculator::run(){
     STARTDBG;
     
     int value_get=-1, info=initialize();
@@ -97,10 +104,18 @@ void base_calculator::run(){
         value_get=getseed(0,0);
         #ifdef UMPI                 // this is interesting
         pthread_attr_init(&attr);
-        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+        
+        CPU_ZERO(&cpus);            // CPU list for affinity
+        
+        //puth the thread in the last core as this is process zero we already rearranged the core number for that
+        CPU_SET(ncpu, &cpus);
+
+        dbg(pthread_attr_setaffinity_np(&attr, sizeof(cpu_set_t), &cpus));
+        
+        dbg(pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE));
         // The function "Manager" sends the initial seeds                    
-        pthread_create(&thread, &attr,
-                       base_calculator::master_static, (void *)this);
+        dbg(pthread_create(&thread, &attr, base_calculator::master_static, (void *)this));
+        
         log_printf("Master thread created\n");
         }
     else{
@@ -109,6 +124,7 @@ void base_calculator::run(){
         }
     while(value_get!=-1){
         //Now start making calculations and check that no errors ocurred
+        
         info=calculate(value_get);
         int rec=(info==-1?-1:indices);
         if(rank==0) {
@@ -138,6 +154,7 @@ void base_calculator::run(){
         }
     #endif // UMPI
     ENDDBG;
+    return 0;
     }
 
 
@@ -189,39 +206,43 @@ void base_calculator::print(FILE* ou,char pre){
 
 #ifdef UMPI
 int base_calculator::master(){
-    STARTDBG
-    int rec=0;               // received value
-    double *tmp_buffer;      // temporal buffer
+    STARTDBG;
+    int rec=0, max_rec=0, seed;    // received value, max_received, seed
+    double *tmp_buffer=NULL; // temporal buffer
     int source;              // sender process            
 
     for(int i=1;i<wsize;i++){
         int tmp=getseed(i,rec);
         MPI_Send(&tmp, 1, MPI_INT, i, seedtag, MPI_COMM_WORLD);
         }
-
     log_printf("Remote processes %d\n",cont);
     
     while(cont>0){
         MPI_Recv(&rec, 1,MPI_INT, MPI_ANY_SOURCE,
                  resultag, MPI_COMM_WORLD, &status);
+        if(max_rec<rec){
+            max_rec=rec;
+            if(tmp_buffer) free(tmp_buffer);
+            tmp_buffer=(double*) malloc(max_rec*sizeof(double));
+            dbg_mem(tmp_buffer);
+            }
         source=status.MPI_SOURCE;
-        int seed=getseed(source,rec);
+        seed=getseed(source,rec);
         // Send the new seed if no error, or -1 as confirmation
         MPI_Send(&seed, 1, MPI_INT, source, seedtag, MPI_COMM_WORLD);
         if(rec>0){
-            tmp_buffer=(double*) malloc(rec*sizeof(double));
             MPI_Recv(tmp_buffer, rec, MPI_DOUBLE, source,
                      valuestag, MPI_COMM_WORLD, &status);
             process(rec,tmp_buffer);
-            free(tmp_buffer);
             }
         else{
             printf("Thread_Warning: Got %d from process %d\n",rec,source);
             }
         log_printf("Processed %d results from process %d\n",rec,source);
         }
+    free(tmp_buffer);
     log_printf("Finish thread\n");
-    ENDDBG
+    ENDDBG;
     return 0;
     }
 

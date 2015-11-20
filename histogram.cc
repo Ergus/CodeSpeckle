@@ -123,7 +123,7 @@ int histogram::process(const int np,const double *values){
         }
     for(int i=0;i<ndeltaE;i++) dos[i]=((double)nos[i])/nrealiz;
 
-    if(nrealiz%save_interval==0){
+    if((nrealiz%save_interval)==0){
         caller->log_printf("Saving values nrealiz=%d\n",nrealiz);
         write_values();
         }

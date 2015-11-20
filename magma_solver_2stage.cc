@@ -25,6 +25,9 @@ magma_solver_2stage::magma_solver_2stage(int on, bool ovectors,
     //First call to get right sizes;
 
     if(ngpu==1){
+        #ifdef DEBUG
+        printf("Magma will use 1 gpu\n");
+        #endif
         magma_zheevdx_2stage(
                       jobz, range, uplo,
                       n, NULL, n, min, max, 0, 0,
@@ -36,6 +39,9 @@ magma_solver_2stage::magma_solver_2stage(int on, bool ovectors,
                       );                          
         }
     else{
+        #ifdef DEBUG
+        printf("Magma will use %d gpu\n",ngpu);
+        #endif        
         magma_zheevdx_2stage_m(
                         ngpu,
                         jobz, range, uplo,
@@ -97,7 +103,14 @@ int magma_solver_2stage::solve(double complex *oA){
     if(iwork) free(iwork); magma_imalloc_cpu(&iwork,liwork); dbg_mem(iwork);
     if(rwork) free(rwork); magma_dmalloc_cpu(&rwork,lrwork); dbg_mem(rwork);
 
+#ifdef DEBUG
+    printf("jobz= %s\n",(jobz==MagmaVec?"MagmaVec":"MagmaNoVec"));
+#endif            
+    
     if(ngpu==1){
+        #ifdef DEBUG
+        printf("Calling magma solver with 1 gpu\n");
+        #endif        
         magma_zheevdx_2stage(
                       jobz, range, uplo,
                       n, hA, n, min, max, 0, 0,
@@ -109,6 +122,9 @@ int magma_solver_2stage::solve(double complex *oA){
                       );                          
         }
     else{
+        #ifdef DEBUG
+        printf("Calling magma solver with %d gpu\n",ngpu);
+        #endif
         magma_zheevdx_2stage_m(
                         ngpu,
                         jobz, range, uplo,

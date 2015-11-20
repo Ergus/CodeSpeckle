@@ -44,7 +44,7 @@ MKLFLAGS = -I$(MKLROOT)/include
 ifeq ($(CXX),icpc)
   THELIBS += -L$(MKLROOT)/lib/intel64/ -mkl=parallel -lpthread
 else
- THELIBS += -L$(MKLROOT)/lib/intel64/ -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5
+  THELIBS += -L$(MKLROOT)/lib/intel64/ -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5
 endif
 FLAGS = $(MKLFLAGS)
 LIBS += mkl_solver.o

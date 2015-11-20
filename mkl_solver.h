@@ -22,7 +22,7 @@ class mkl_solver:public solver{
             \param [in] omin lower limit of interesting values
             \param [in] omax upper limit of interesting values */
         mkl_solver(int n, bool ovectors=false,
-                   double omin=0.0, double omax=0.0);
+                   double omin=0.0, double omax=0.0, int ncpu=0);
 
         /// Destructor for mkl_solver        
         ~mkl_solver();

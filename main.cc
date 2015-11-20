@@ -5,4 +5,5 @@ int main(int argc, char **argv){
     speckle a(argc,argv);
     a.run();
     printf("Program Finish!!!\n");
+    return 0;
     }

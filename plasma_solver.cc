@@ -1,17 +1,23 @@
 #include "plasma_solver.h"
 
 plasma_solver::plasma_solver(int n, bool ovectors,
-                             double omin, double omax, int ncpu):
+                             double omin, double omax,
+                             int ncpu, int start_cpu):
               solver(n,ovectors,omin,omax),
               uplo(PlasmaLower),
               abstol(-1){
-    STARTDBG
+    STARTDBG;
     // initialize plasma system
     //omp_set_num_threads(1);
     //goto_set_num_threads(1);
     //mkl_set_num_threads(1);
+
+    coresbind=(int *) malloc(ncpu*sizeof(int));
+    for(int i=0;i<ncpu;i++){
+        coresbind[i]=start_cpu+i;
+        }
     
-    PLASMA_Init(ncpu);
+    PLASMA_Init_Affinity(ncpu,coresbind);
     
     jobz = (ovectors?PlasmaVec:PlasmaNoVec);
     range =(min==max?PlasmaAllVec:PlasmaVec);
@@ -38,21 +44,22 @@ plasma_solver::plasma_solver(int n, bool ovectors,
             }
         }
 
-    ENDDBG
+    ENDDBG;
     }
 
 plasma_solver::~plasma_solver(){
-    STARTDBG
+    STARTDBG;
     
     if(oV) free(oV); oV=NULL;
-    
+
     free(desc);
     PLASMA_Finalize();
-    ENDDBG
+    free(coresbind);
+    ENDDBG;
     }
 
 int plasma_solver::solve(double complex *oA){
-    STARTDBG
+    STARTDBG;
     
     //Cast for Input Matrix
     PLASMA_Complex64_t *hA=(PLASMA_Complex64_t *)oA;
@@ -68,7 +75,6 @@ int plasma_solver::solve(double complex *oA){
                             0, 0, abstol,
                             &m, w, desc,
                             oV, n );
-
         }
 
     if(info!=PLASMA_SUCCESS){
@@ -76,6 +82,6 @@ int plasma_solver::solve(double complex *oA){
         return(-1);
         }
     
-    ENDDBG
+    ENDDBG;
     return 0;
     }

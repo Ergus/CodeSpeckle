@@ -1,7 +1,7 @@
 #include "mkl_solver.h"
 
 mkl_solver::mkl_solver(int n, bool ovectors,
-                       double omin, double omax):
+                       double omin, double omax, int ncpu):
     solver(n,ovectors,omin,omax),
     layout(LAPACK_ROW_MAJOR),
     uplo('L'){
@@ -13,7 +13,10 @@ mkl_solver::mkl_solver(int n, bool ovectors,
 
     // if it will calculate a range of values and vectors the zheevr 
     // writes values in a different array not as zheevd
-    if((jobz=='V')&&(range=='V')){ 
+    if((jobz=='V')&&(range=='V')){
+
+        mkl_set_num_threads(ncpu);
+        
         oV=(double complex *) malloc(n*n*sizeof(double complex));
         if (!oV){
             fprintf(stderr,"Error allocating oV (array for vectors)\n");

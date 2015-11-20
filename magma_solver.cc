@@ -115,6 +115,10 @@ int magma_solver::solve(double complex *oA){
     if(iwork) free(iwork); magma_imalloc_cpu(&iwork,liwork); dbg_mem(iwork);
     if(rwork) free(rwork); magma_dmalloc_cpu(&rwork,lrwork); dbg_mem(rwork);
 
+#ifdef DEBUG
+    printf("jobz= %s\n",(jobz==MagmaVec?"MagmaVec":"MagmaNoVec"));    
+#endif            
+
     if(range==MagmaRangeAll){
         if(ngpu==1){
             magma_zheevd(

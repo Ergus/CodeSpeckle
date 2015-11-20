@@ -83,7 +83,7 @@ speckle::speckle(int argc, char **argv):
 
     // Construct the solver
     if(solvername=="mkl"){
-        thesolver=new mkl_solver(Ntot,vectors,min,max);
+        thesolver=new mkl_solver(Ntot,vectors,min,max,ncpu);
         }
     #ifdef UMAGMA
     else if(solvername=="magma"){
@@ -95,7 +95,7 @@ speckle::speckle(int argc, char **argv):
     #endif
     #ifdef UPLASMA
     else if(solvername=="plasma"){
-        thesolver=new plasma_solver(Ntot,vectors,min,max,ncpu);
+        thesolver=new plasma_solver(Ntot,vectors,min,max,ncpu,start_cpu);
         }
     #endif
     else{
@@ -244,11 +244,9 @@ int speckle::defineA(){
 
     f18_printf("# The dimension of the matrix is %d\n", Ntot);
     
-    int* vkx=(int*) malloc(Ntot*sizeof(int)),
-       * vky=(int*) malloc(Ntot*sizeof(int)),
-       * vkz=(int*) malloc(Ntot*sizeof(int));
-    //If error in this line check the 3 lines before
-    dbg_mem(vkx); dbg_mem(vky); dbg_mem(vkz); 
+    int* vkx=(int*) malloc(Ntot*sizeof(int)); dbg_mem(vkx);
+    int* vky=(int*) malloc(Ntot*sizeof(int)); dbg_mem(vky);
+    int* vkz=(int*) malloc(Ntot*sizeof(int)); dbg_mem(vkz); 
 
     double* diagTk=(double*) malloc(Ntot*sizeof(double)); dbg_mem(diagTk);
     
